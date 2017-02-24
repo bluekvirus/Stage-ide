@@ -15,7 +15,7 @@ module.exports = function(server){
 
 	router.get('/getViewList', function(req, res){
 		var views = [],
-			baseSrc = '../../implementation/js/view/';
+			baseSrc = '../../implementation/js/ide/view/';
 		//
 		var paths = fs.walkSync(path.join(baseSrc, 'user')); //walkSync relies on fs-extra 1.x.x. 2.x.x has moved this function to a separate package.
 		//augment paths to view names

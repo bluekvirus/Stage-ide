@@ -15,6 +15,12 @@
 			this.meshed = true;
 			//flag to indicate whether view has generated some kind of layout
 			this.generated = false;
+			//flag to indicate whether showing view configuration menu or not
+			this.viewMenu = false;
+			//flag to indicate whether inserting view is an existing one or not
+			this.viewExisted = false;
+			//meta to store currently focusing on which region
+			this.currentRegion = '';
 		},
 		onTemplateAdded: function(name){
 			this.addTemplateOnMenu(name, true);
@@ -72,7 +78,7 @@
 			}
 
 			//on mouse move use app.coop to show the guide lines
-			this.$el.on('mousemove', app.throttle(function(e){
+			this.$el.on('mousemove', function(e){
 				//prevent default events
 				e.preventDefault();
 
@@ -115,7 +121,7 @@
 
 				}
 
-			}, 75));
+			});
 
 			//on press shift key switch the direction of guide line
 			this.$el.on('keyup', function(e){
@@ -129,6 +135,7 @@
 			});
 
 			this.$el.on('click', function(e){
+				var $target = $(e.target);
 				//if end point menu is being shown, close menu ONLY and no further operations
 				var Menu = that.getViewIn('arrows');
 				if(Menu.shown){
@@ -136,14 +143,37 @@
 					return;
 				}
 
+				//if view menu shown, return
+				if(_.string.include($target.attr('class'), 'view-menu') || $target.is('input')){
+					return;
+				}
+
 				//locked and generated means inserting views
 				if(that.generated && that.locked){
+
+					//setup current region
+					that.currentRegion = $target.attr('region');
+					
+					//get view list
 					app.remote('/api/getViewList')
-						.done(function(data){console.log(data);});
-					/*$target = $(e.target);
-					that.getViewIn('generate-view').show($target.attr('region'), app.view({
-						template: '<h2>hahahaha</h2>'
-					}, true));*/
+						.done(function(views){
+							//clean up old lists
+							that.$el.find('.view-menu-list').empty();
+							//populate the list
+							_.each(views, function(viewName){
+								that.$el.find('.view-menu-list').append('<div class="view-menu-list-item" action="existing-view-click"><span>' + viewName + '</span></div>');
+							});
+						});
+					
+					that.$el.find('.view-menu').css({
+						top: (($window.height() - e.pageY) < that.$el.find('.view-menu').height()) ? (e.pageY - that.$el.find('.view-menu').height()) : e.pageY,
+						left: e.pageX
+					}).removeClass('hidden');
+
+					//indicate this.viewMenu is showing
+					this.viewMenu = true;
+
+					//return immediately
 					return;
 				}
 
@@ -173,6 +203,29 @@
 				var temp = app.store.get('__opened__');
 				app.store.set('__opened__', !temp);
 			}));
+
+			//view input change need to de-highlight or highlight view menu list item
+			this.$el.find('#view-menu-input').on('keyup', _.debounce(function(e){
+				var $this = $(this),
+					current = $this.val(),
+					flag = false;
+
+				//check whether same
+				_.each(that.$el.find('.view-menu-list .view-menu-list-item'), function(el){
+					var $el = $(el);
+					if($el.text() === current){
+						$el.addClass('active');
+						flag = true;
+					}
+					else
+						$el.removeClass('active');
+				});
+
+				if(flag) 
+					that.viewExisted = true;
+				else
+					that.viewExisted = false;
+			}, 150));
 
 			//set up templates holder height for scroll
 			var height = this.$el.height(),
@@ -261,14 +314,6 @@
 					that.show('generate-view', _Demo);
 					that.generateLock();
 					that.generateUnmesh();
-					/*app.view({template: [
-						'<div view="_Demo" style="margin-bottom: 1em;"></div>',
-						'<div><button action="close" type="button" class="btn btn-primary btn-lg btn-block">Close</button></div>',
-					], actions: {
-						close: function(){
-							this.close();
-						}
-					}}, true).overlay();*/
 				})
 				.fail(function(error){
 					app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
@@ -363,6 +408,36 @@
 			},
 			'hide-end-points': function($self){
 				this.meshLayout($self);
+			},
+			'existing-view-click': function($self){
+				//toggle active classes
+				$self.siblings().removeClass('active');
+				$self.addClass('active');
+
+				//update input text
+				this.$el.find('#view-menu-input').val($self.text());
+
+				//change flag
+				this.viewExisted = true;
+			},
+			'view-cancel': function(){
+				this.$el.find('.view-menu').addClass('hidden');
+			},
+			'view-add': function(){
+				var name = this.$el.find('#view-menu-input').val();
+				//existing view
+				if(this.viewExisted){
+					this.getViewIn('generate-view').show(this.currentRegion, name);
+					this.$el.find('.view-menu').addClass('hidden');
+				}
+				//new view
+				else{
+					var Temp = app.view(name, {
+						template: '<h2>This is newly created View ' +  name + '</h2>'
+					});
+					this.getViewIn('generate-view').show(this.currentRegion, Temp);
+					this.$el.find('.view-menu').addClass('hidden');
+				}
 			}
 		},
 		checkConstrain: function(e){
