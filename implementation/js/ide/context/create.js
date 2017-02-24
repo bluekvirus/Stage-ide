@@ -433,7 +433,13 @@
 				//new view
 				else{
 					var Temp = app.view(name, {
-						template: '<h2>This is newly created View ' +  name + '</h2>'
+						template: [
+							'<h2>',
+							    '<sup><i class="fa fa-quote-left"></i></sup>',
+							    'Stage.js - template for newly generated<strong>' + name + '</strong> of type: VIEW <i class="fa fa-exclamation"></i>',
+							    '<sup><i class="fa fa-quote-right"></i></sup>',
+							'</h2>',
+						]
 					});
 					this.getViewIn('generate-view').show(this.currentRegion, Temp);
 					this.$el.find('.view-menu').addClass('hidden');

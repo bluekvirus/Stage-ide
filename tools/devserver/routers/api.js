@@ -33,52 +33,6 @@ module.exports = function(server){
 		});
 		return res.status(200).json(views);
 	});
-	// router.get('/getViewList', function(req, res){
-	// 	while(queue.length){
-	// 		//generate base string
-	// 		var currentPath = queue[0],
-	// 			str = _.compact(currentPath.slice().replace('../../implementation/js/view/', '').split('/'));
-	// 		_.each(str, function(partial, index){
-	// 			str[index] = partial.charAt(0).toUpperCase() + partial.slice(1);
-	// 		});
-	// 		str = str.join('.');
-	// 		//scan
-	// 		//scanViewInDir(queue[0], str);
-	// 		fs.readdirSync(currentPath, function(err, files){
-	// 			console.log(files);
-	// 			//go through every file
-	// 			_.each(files, function(file){
-					
-	// 				//if file is directory, push it into queue for further scan
-	// 				if(fs.lstatSync(path.join(currentPath, file)).isDirectory()){
-	// 					queue.push(path.join(currentPath, file));
-	// 				}
-	// 				//if it's a file, combine with baseString and push it into views
-	// 				else{
-	// 					views.push([baseString, (file.split('.')[0]).charAt(0).toUpperCase()].join('.'));
-	// 				}
-	// 			});
-	// 		});
-	// 		queue.shift();
-	// 	}
-	// 	return res.status(200).json({'msg': 'lalala'});
-	// });
-
-	// function scanViewInDir(p, baseString){
-	// 	fs.readdirSync(p, function(err, files){
-	// 		//go through every file
-	// 		_.each(files, function(file){
-	// 			//if file is directory, push it into queue for further scan
-	// 			if(fs.lstatSync(path.join(p, file)).isDirectory()){
-	// 				queue.push(path.join(p, file));
-	// 			}
-	// 			//if it's a file, combine with baseString and push it into views
-	// 			else{
-	// 				views.push([baseString, (file.split('.')[0]).charAt(0).toUpperCase()].join('.'));
-	// 			}
-	// 		});
-	// 	});
-	// }
 
 	router.post('/generate', function(req, res){
 		
