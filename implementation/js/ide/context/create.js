@@ -13,6 +13,8 @@
 			this.locked = false;
 			//hide end points or not
 			this.meshed = true;
+			//flag to indicate whether view has generated some kind of layout
+			this.generated = false;
 		},
 		onTemplateAdded: function(name){
 			this.addTemplateOnMenu(name, true);
@@ -133,6 +135,18 @@
 					Menu.closeMenu();
 					return;
 				}
+
+				//locked and generated means inserting views
+				if(that.generated && that.locked){
+					app.remote('/api/getViewList')
+						.done(function(data){console.log(data);});
+					/*$target = $(e.target);
+					that.getViewIn('generate-view').show($target.attr('region'), app.view({
+						template: '<h2>hahahaha</h2>'
+					}, true));*/
+					return;
+				}
+
 				//only trigger if this.$el is already focused
 				if(that.$el.is(':focus') && that.clickable)
 					//tell guide line view user clicked
@@ -160,21 +174,6 @@
 				app.store.set('__opened__', !temp);
 			}));
 
-			// //stop hover on side menu being popup, not really working, now use forbiddenClasses array
-			// this.$el.find('[class^="side-menu"]').hover(function(e){
-			// 	e.stopPropagation();
-			// });
-
-			// //stop hover on block being popup
-			// this.$el.find('.locker').hover(function(e){
-			// 	e.stopPropagation();
-			// });
-
-			// //stop hover on operations being popup
-			// this.$el.find('.operations-holder').hover(function(e){
-			// 	e.stopPropagation();
-			// });
-
 			//set up templates holder height for scroll
 			var height = this.$el.height(),
 				blockHeight = this.$el.find('.side-menu-section').outerHeight() * 2 + this.$el.find('.side-menu-item').outerHeight() * 4,
@@ -200,14 +199,10 @@
 		},
 		actions: {
 			lock: function($self){
-				$self.toggleClass('active');
-				$self.find('.lock').toggleClass('hidden');
-				$self.find('.unlock').toggleClass('hidden');
-				this.$el.find('.locker').toggleClass('hidden');
-				this.locked = !this.locked;
+				this.lockLayout($self);
 			},
 			generate: function(){//need to align lines, ignore margin of errors
-				var x = [], y = [];
+				var x = [], y = [], that = this;
 				//generate a list of x and y coordinates from end points
 				_.each(app._global.endPoints, function(endPoint, pid){
 					var flag = false;
@@ -260,30 +255,27 @@
 				})
 				.done(function(data){
 					app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
-					app.view('_Demo', {
-						layout: _.extend(data.layout, {
-							width: 400 * 1.5,
-							height: 300 * 1.5,
-						}), 
-						attributes: {style: 'border:2px solid #FFF;'},
-						onReady: function(){
-							_.each(this.regions, function(def, r){
-								this[r].$el.css('color', '#FFF').text(r.split('-')[2]);
-							}, this);
-						},
+					var _Demo = app.view('_Demo', {
+						layout: _.extend(data.layout)
 					});
-					app.view({template: [
+					that.show('generate-view', _Demo);
+					that.generateLock();
+					that.generateUnmesh();
+					/*app.view({template: [
 						'<div view="_Demo" style="margin-bottom: 1em;"></div>',
 						'<div><button action="close" type="button" class="btn btn-primary btn-lg btn-block">Close</button></div>',
 					], actions: {
 						close: function(){
 							this.close();
 						}
-					}}, true).overlay();
+					}}, true).overlay();*/
 				})
 				.fail(function(error){
 					app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
 				});
+
+				//set generated flag to true
+				this.generated = true;
 
 				//debug log
 				app.debug('x array', x, 'y array', y);
@@ -370,63 +362,7 @@
 				this.reset();
 			},
 			'hide-end-points': function($self){
-				//appereance
-				$self.toggleClass('active');
-				$self.find('.hide-point').toggleClass('hidden');
-				$self.find('.show-point').toggleClass('hidden');
-
-				//real stuff
-				if(this.meshed){
-					//outer circle
-					_.each($('.end-point'), function(el){
-						var $el = $(el);
-						//
-						var classes = $el.attr('class');
-						$el.attr('class', classes + ' hidden');
-					});
-
-					//inner circle
-					_.each($('.end-point-inner'), function(el){
-						var $el = $(el);
-						//
-						var classes = $el.attr('class');
-						$el.attr('class', classes + ' hidden');
-					});
-
-					//lines
-					_.each($('.layout-line'), function(el){
-						var $el = $(el);
-						//
-						var classes = $el.attr('class');
-						$el.attr('class', classes + ' hidden');
-					});
-
-				}else{
-					//outer circle
-					_.each($('.end-point'), function(el){
-						var $el = $(el);
-						//
-						var classes = $el.attr('class');
-						$el.attr('class', classes.replace('hidden', ''));
-					});
-
-					//inner circle
-					_.each($('.end-point-inner'), function(el){
-						var $el = $(el);
-						//
-						var classes = $el.attr('class');
-						$el.attr('class', classes.replace('hidden', ''));
-					});
-
-					//lines
-					_.each($('.layout-line'), function(el){
-						var $el = $(el);
-						//
-						var classes = $el.attr('class');
-						$el.attr('class', classes.replace('hidden', ''));
-					});
-				}
-				this.meshed = !this.meshed;
+				this.meshLayout($self);
 			}
 		},
 		checkConstrain: function(e){
@@ -541,6 +477,88 @@
 		flashCurrent: function(){
 			this.$el.find('.side-menu-list .current-name-holder').addClass('flash');
 		},
+		lockLayout: function($lockButton){
+			$lockButton.toggleClass('active');
+			$lockButton.find('.lock').toggleClass('hidden');
+			$lockButton.find('.unlock').toggleClass('hidden');
+			this.$el.find('.locker').toggleClass('hidden');
+			this.locked = !this.locked;
+		},
+		meshLayout: function($meshButton){
+			//appereance
+			$meshButton.toggleClass('active');
+			$meshButton.find('.hide-point').toggleClass('hidden');
+			$meshButton.find('.show-point').toggleClass('hidden');
+
+			//real stuff
+			if(this.meshed){
+				//outer circle
+				_.each($('.end-point'), function(el){
+					var $el = $(el);
+					//
+					var classes = $el.attr('class');
+					$el.attr('class', classes + ' hidden');
+				});
+
+				//inner circle
+				_.each($('.end-point-inner'), function(el){
+					var $el = $(el);
+					//
+					var classes = $el.attr('class');
+					$el.attr('class', classes + ' hidden');
+				});
+
+				//lines
+				_.each($('.layout-line'), function(el){
+					var $el = $(el);
+					//
+					var classes = $el.attr('class');
+					$el.attr('class', classes + ' hidden');
+				});
+
+			}else{
+				//outer circle
+				_.each($('.end-point'), function(el){
+					var $el = $(el);
+					//
+					var classes = $el.attr('class');
+					$el.attr('class', classes.replace('hidden', ''));
+				});
+
+				//inner circle
+				_.each($('.end-point-inner'), function(el){
+					var $el = $(el);
+					//
+					var classes = $el.attr('class');
+					$el.attr('class', classes.replace('hidden', ''));
+				});
+
+				//lines
+				_.each($('.layout-line'), function(el){
+					var $el = $(el);
+					//
+					var classes = $el.attr('class');
+					$el.attr('class', classes.replace('hidden', ''));
+				});
+			}
+			this.meshed = !this.meshed;
+		},
+		generateLock: function(){
+			//check whether view is already locked
+			//if already locked return
+			if(this.locked) return;
+			//if not locked, lock the view
+			else
+				this.lockLayout(this.$el.find('.operations-item.lock-button'));
+		},
+		generateUnmesh: function(){
+			//check whether view is already unmeshed
+			//if unmeshed, return
+			if(!this.meshed) return;
+			//if not, unmesh
+			else
+				this.meshLayout(this.$el.find('.operations-item.hide-button'));
+		}
 	});
 
 	function checkContained(arr, obj, key){

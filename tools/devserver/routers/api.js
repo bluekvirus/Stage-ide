@@ -13,6 +13,73 @@ module.exports = function(server){
 	var router = server.mount(this);
 	server.secure(router);
 
+	router.get('/getViewList', function(req, res){
+		var views = [],
+			baseSrc = '../../implementation/js/view/';
+		//
+		var paths = fs.walkSync(path.join(baseSrc, 'user')); //walkSync relies on fs-extra 1.x.x. 2.x.x has moved this function to a separate package.
+		//augment paths to view names
+		_.each(paths, function(p, index){
+			//get paths in pieces
+			var temp = p.replace(baseSrc, '').split('/');
+			//get rid of last .js extension
+			temp[temp.length - 1] = temp[temp.length - 1].replace(/.js$/, '');
+			//capitalize first character
+			_.each(temp, function(str, index){
+				temp[index] = str.charAt(0).toUpperCase() + str.slice(1);
+			});
+			//combine them into view name
+			views.push(temp.join('.'));
+		});
+		return res.status(200).json(views);
+	});
+	// router.get('/getViewList', function(req, res){
+	// 	while(queue.length){
+	// 		//generate base string
+	// 		var currentPath = queue[0],
+	// 			str = _.compact(currentPath.slice().replace('../../implementation/js/view/', '').split('/'));
+	// 		_.each(str, function(partial, index){
+	// 			str[index] = partial.charAt(0).toUpperCase() + partial.slice(1);
+	// 		});
+	// 		str = str.join('.');
+	// 		//scan
+	// 		//scanViewInDir(queue[0], str);
+	// 		fs.readdirSync(currentPath, function(err, files){
+	// 			console.log(files);
+	// 			//go through every file
+	// 			_.each(files, function(file){
+					
+	// 				//if file is directory, push it into queue for further scan
+	// 				if(fs.lstatSync(path.join(currentPath, file)).isDirectory()){
+	// 					queue.push(path.join(currentPath, file));
+	// 				}
+	// 				//if it's a file, combine with baseString and push it into views
+	// 				else{
+	// 					views.push([baseString, (file.split('.')[0]).charAt(0).toUpperCase()].join('.'));
+	// 				}
+	// 			});
+	// 		});
+	// 		queue.shift();
+	// 	}
+	// 	return res.status(200).json({'msg': 'lalala'});
+	// });
+
+	// function scanViewInDir(p, baseString){
+	// 	fs.readdirSync(p, function(err, files){
+	// 		//go through every file
+	// 		_.each(files, function(file){
+	// 			//if file is directory, push it into queue for further scan
+	// 			if(fs.lstatSync(path.join(p, file)).isDirectory()){
+	// 				queue.push(path.join(p, file));
+	// 			}
+	// 			//if it's a file, combine with baseString and push it into views
+	// 			else{
+	// 				views.push([baseString, (file.split('.')[0]).charAt(0).toUpperCase()].join('.'));
+	// 			}
+	// 		});
+	// 	});
+	// }
+
 	router.post('/generate', function(req, res){
 		
 		//grab the points and lines
