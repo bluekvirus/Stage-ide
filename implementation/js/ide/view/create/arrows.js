@@ -68,6 +68,11 @@
 				if($self.find('i').hasClass('deletable')){//deletable
 					var line = this.lines[$self.data('direction')];
 					this.deleteLine(line, $self.data('direction'));
+					
+					//if parectView has generated layout, send reset event
+					if(this.parentCt.generated)
+						this.coop('layout-resetted');
+
 					this.coop('sync-local');
 				}else{//NOT deletable
 					app.notify('Cannot Delete', 'This line cannot be deleted!', 'error', {icon: 'fa fa-reddit-alien'});

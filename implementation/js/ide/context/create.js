@@ -21,6 +21,8 @@
 			this.viewExisted = false;
 			//meta to store currently focusing on which region
 			this.currentRegion = '';
+			//meta for region view table
+			this.regionView = {};
 		},
 		onTemplateAdded: function(name){
 			this.addTemplateOnMenu(name, true);
@@ -153,22 +155,32 @@
 
 					//setup current region
 					that.currentRegion = $target.attr('region');
+
+					//clean up input text
+					that.$el.find('.view-menu #view-menu-input').val('');
 					
 					//get view list
-					app.remote('/api/getViewList')
-						.done(function(views){
-							//clean up old lists
-							that.$el.find('.view-menu-list').empty();
-							//populate the list
-							_.each(views, function(viewName){
-								that.$el.find('.view-menu-list').append('<div class="view-menu-list-item" action="existing-view-click"><span>' + viewName + '</span></div>');
-							});
+					app.remote({
+						url: '/api/getViewList'
+					})
+					.done(function(views){
+						//clean up old lists
+						that.$el.find('.view-menu-list').empty();
+						//populate the list
+						_.each(views, function(viewName){
+							that.$el.find('.view-menu-list').append('<div class="view-menu-list-item" action="existing-view-click"><span>' + viewName + '</span></div>');
 						});
+					});
+
+					if(!_.string.include($target.attr('class'), 'side-menu')){
+						that.$el.find('.view-menu').removeClass('hidden').css({
+							top: (($window.height() - e.pageY) < that.$el.find('.view-menu').height()) ? (e.pageY - that.$el.find('.view-menu').height()) : e.pageY,
+							left: e.pageX
+						});	
+					}else{
+						that.$el.find('.view-menu').addClass('hidden');
+					}
 					
-					that.$el.find('.view-menu').css({
-						top: (($window.height() - e.pageY) < that.$el.find('.view-menu').height()) ? (e.pageY - that.$el.find('.view-menu').height()) : e.pageY,
-						left: e.pageX
-					}).removeClass('hidden');
 
 					//indicate this.viewMenu is showing
 					this.viewMenu = true;
@@ -202,6 +214,15 @@
 				//flip side menu status in the local storage
 				var temp = app.store.get('__opened__');
 				app.store.set('__opened__', !temp);
+			}));
+
+			//click side menu close all other menus
+			this.$el.find('.side-menu').on('click', app.throttle(function(e){
+				//view menu
+				that.$el.find('.view-menu').addClass('hidden');
+
+				//arrow
+				that.$el.find('.end-point-menu').addClass('hidden');
 			}));
 
 			//view input change need to de-highlight or highlight view menu list item
@@ -255,78 +276,7 @@
 				this.lockLayout($self);
 			},
 			generate: function(){//need to align lines, ignore margin of errors
-				var x = [], y = [], that = this;
-				//generate a list of x and y coordinates from end points
-				_.each(app._global.endPoints, function(endPoint, pid){
-					var flag = false;
-					if(!_.contains(x, endPoint.x)){//not contained in the x 
-						if(!checkContained(x, endPoint, 'x')){//adjust the coordinate if necessary
-							x.push(endPoint.x);
-							//sort
-							x = _.sortBy(x, function(num){ return num;});
-						}
-					}
-
-					if(!_.contains(y, endPoint.y)){//y
-						if(!checkContained(y, endPoint, 'y')){
-							y.push(endPoint.y);
-							//sort
-							y = _.sortBy(y, function(num){ return num;});
-						}
-					}
-				});
-
-				//augment horizontal lines and vertical lines based on coordiates extracted from end points
-				//horizontal
-				_.each(app._global['horizontal-line'], function(hline){
-					//left anchor
-					checkContained(x, hline, 'x1');
-					//right anchor
-					checkContained(x, hline, 'x2');
-					//y
-					checkContained(y, hline, 'y');
-				});
-
-				//vertical
-				_.each(app._global['vertical-line'], function(vline){
-					//top anchor
-					checkContained(y, vline, 'y1');
-					//bottom anchor
-					checkContained(y, vline, 'y2');
-					//x
-					checkContained(x, vline, 'x');
-				});
-
-				app.remote({
-					url: '/api/generate',
-					payload: {
-						endPoints: app._global.endPoints,
-						//max length h/v lines are 100 (%).
-						hlines: app._global['horizontal-line'],
-						vlines: app._global['vertical-line'],
-					}
-				})
-				.done(function(data){
-					app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
-					var _Demo = app.view('_Demo', {
-						layout: _.extend(data.layout)
-					});
-					that.show('generate-view', _Demo);
-					that.generateLock();
-					that.generateUnmesh();
-				})
-				.fail(function(error){
-					app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
-				});
-
-				//set generated flag to true
-				this.generated = true;
-
-				//debug log
-				app.debug('x array', x, 'y array', y);
-				app.debug('endPoints exported from generate action', app._global.endPoints);
-				app.debug('h-lines exported from generate action', app._global['horizontal-line']);
-				app.debug('v-lines exported from generate action', app._global['vertical-line']);
+				this.generateLayout();
 			},
 			reset: function(){
 				this.reset();
@@ -424,7 +374,7 @@
 				this.$el.find('.view-menu').addClass('hidden');
 			},
 			'view-add': function(){
-				var name = this.$el.find('#view-menu-input').val();
+				var name = this.$el.find('#view-menu-input').val(), Temp;
 				//existing view
 				if(this.viewExisted){
 					this.getViewIn('generate-view').show(this.currentRegion, name);
@@ -432,7 +382,7 @@
 				}
 				//new view
 				else{
-					var Temp = app.view(name, {
+					Temp = app.view(name, {
 						template: [
 							'<h2>',
 							    '<sup><i class="fa fa-quote-left"></i></sup>',
@@ -444,6 +394,16 @@
 					this.getViewIn('generate-view').show(this.currentRegion, Temp);
 					this.$el.find('.view-menu').addClass('hidden');
 				}
+
+				//save a region <-> view table
+				//if view exists save name, if it is newly constructed view save instance
+				if(this.viewExisted)
+					this.regionView[this.currentRegion] = name;
+				else
+					this.regionView[this.currentRegion] = Temp;
+
+				console.log(this.regionView);
+				
 			}
 		},
 		checkConstrain: function(e){
@@ -548,6 +508,8 @@
 			app._global['horizontal-line'] = undefined;
 			app._global['vertical-line'] = undefined;
 
+			this.onLayoutResetted(true);
+
 			//refresh
 			this.show('guide', 'Create.Guide');
 			//layout svg
@@ -559,13 +521,44 @@
 			this.$el.find('.side-menu-list .current-name-holder').addClass('flash');
 		},
 		lockLayout: function($lockButton){
+			//check if already generated layout
+			if(this.generated){
+				//check if try to unlock or lock
+				if(this.locked){//try to unlock
+					//if not meshed, make it meshed
+					if(!this.meshed)
+						this.meshLayout(this.$el.find('.operations-item .hide-button'), true);
+
+					//change lock div z-index to -1, for easier dragging
+					this.$el.find('.locker').css({'z-index': -2}).removeClass('hidden');
+
+				}else{//try to lock
+					//if meshed make it unmeshed
+					if(this.meshed)
+						this.meshLayout(this.$el.find('.operations-item .hide-button'), true);
+
+					//change lock div z-index to 3, for view inserting
+					this.$el.find('.locker').css({'z-index': 3}).removeClass('hidden');
+				}
+			}
+			//not generated any layout
+			else{
+				this.$el.find('.locker').toggleClass('hidden');
+			}
+
 			$lockButton.toggleClass('active');
 			$lockButton.find('.lock').toggleClass('hidden');
 			$lockButton.find('.unlock').toggleClass('hidden');
-			this.$el.find('.locker').toggleClass('hidden');
 			this.locked = !this.locked;
 		},
-		meshLayout: function($meshButton){
+		meshLayout: function($meshButton, callFromLock){
+			//check whether locked and generated, if yes tell user must unlock first, return
+			//ignore this branch, if this method is called directly from lockLayout function
+			if(!callFromLock && this.generated && !this.meshed && this.locked){
+				app.notify('Error!', 'You have generated a layout. You need to unlock to see all the grids.', 'error', {icon: 'fa fa-reddit-alien'});
+				return;
+			}
+
 			//appereance
 			$meshButton.toggleClass('active');
 			$meshButton.find('.hide-point').toggleClass('hidden');
@@ -639,6 +632,114 @@
 			//if not, unmesh
 			else
 				this.meshLayout(this.$el.find('.operations-item.hide-button'));
+		},
+		generateLayout: function(adjusting){
+			var x = [], y = [], that = this;
+			//generate a list of x and y coordinates from end points
+			_.each(app._global.endPoints, function(endPoint, pid){
+				var flag = false;
+				if(!_.contains(x, endPoint.x)){//not contained in the x 
+					if(!checkContained(x, endPoint, 'x')){//adjust the coordinate if necessary
+						x.push(endPoint.x);
+						//sort
+						x = _.sortBy(x, function(num){ return num;});
+					}
+				}
+
+				if(!_.contains(y, endPoint.y)){//y
+					if(!checkContained(y, endPoint, 'y')){
+						y.push(endPoint.y);
+						//sort
+						y = _.sortBy(y, function(num){ return num;});
+					}
+				}
+			});
+
+			//augment horizontal lines and vertical lines based on coordiates extracted from end points
+			//horizontal
+			_.each(app._global['horizontal-line'], function(hline){
+				//left anchor
+				checkContained(x, hline, 'x1');
+				//right anchor
+				checkContained(x, hline, 'x2');
+				//y
+				checkContained(y, hline, 'y');
+			});
+
+			//vertical
+			_.each(app._global['vertical-line'], function(vline){
+				//top anchor
+				checkContained(y, vline, 'y1');
+				//bottom anchor
+				checkContained(y, vline, 'y2');
+				//x
+				checkContained(x, vline, 'x');
+			});
+
+			app.remote({
+				url: '/api/generate',
+				payload: {
+					endPoints: app._global.endPoints,
+					//max length h/v lines are 100 (%).
+					hlines: app._global['horizontal-line'],
+					vlines: app._global['vertical-line'],
+				}
+			})
+			.done(function(data){
+				if(!adjusting) app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
+				var _Demo = app.view(/*'_Demo', */{
+					layout: _.extend(data.layout)
+				});
+				that.show('generate-view', _Demo);
+				if(!adjusting){
+					that.generateLock();
+					that.generateUnmesh();	
+				}else{
+					//if calls from adjusting layout, then re-render views
+					if(_.keys(that.regionView).length){
+						_.each(that.regionView, function(v, r){
+							//load view into the region
+							that.getViewIn('generate-view').show(r, v);
+						});
+					}
+				}
+			})
+			.fail(function(error){
+				app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
+			});
+
+			//set generated flag to true
+			this.generated = true;
+
+			//debug log
+			app.debug('x array', x, 'y array', y);
+			app.debug('endPoints exported from generate action', app._global.endPoints);
+			app.debug('h-lines exported from generate action', app._global['horizontal-line']);
+			app.debug('v-lines exported from generate action', app._global['vertical-line']);
+		},
+		onLayoutAdjusted: function(){
+			var that = this;
+			//only response if some layout has already been generated
+			if(!this.generated) return;
+
+			//reset layout
+			this.generateLayout(true);
+		},
+		onLayoutResetted: function(userReset){
+			//reset generated flag
+			this.generated = false;
+
+			//reset generated view
+			if(this.getViewIn('generate-view')) this.getViewIn('generate-view').close();
+
+			//reset regionView table
+			this.regionView = {};
+
+			//reset locker index
+			this.$el.find('.locker').addClass('hidden').css(({'z-index': 3}));
+
+			//send notification
+			if(!userReset) app.notify('Layout Resetted.', 'You have changed original layout. The generated view has been resetted.', 'error', {icon: 'fa fa-reddit-alien'});
 		}
 	});
 

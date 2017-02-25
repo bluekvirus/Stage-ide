@@ -87,26 +87,9 @@
 				occupied, oldLine,
 				tolerance = app._global.tolerance;
 
-			///TODO: 	!!DONE: Clean up this part into a function!!!!!!
-			///			!!DONE: Make delete is on line
-			///			!!	0). make every point has choices execpt the ones on the frame
-			///			!!	1). check whether a line is deletable
-			///			!!	2). if no one color
-			///			!!	3). if yes, show in one color, remove
-			///			!!DONE: Make drag
-			///			!!DONE: Magnate
-			///			!!DONE: 2em gap
-			///			!!DONE: crosses instead of arrows
-			///			!!DONE: close mechanism for arrow menu
-			///			!!DONE: Clean up code
-			///			!!DONE: Change style
-			///			!!DONE: Side menu
-			///			!!DONE: 	1). use app.store(),
-			///			!!DONE: 	2). align all the segments before generate
-			///			!!DONE: 	3). finish reset all
-			///						4). make it savable to different profiles
-			///						*** finish delete, *** delete an active template? delete the last one? currently active how to deal with?
-
+			//check whether this click will reset previously generated layout, if yes trigger layout reset event
+			if(this.parentCt.generated)
+				this.coop('layout-resetted');
 
 			if(this._horizontal){//horizontal line
 

@@ -89,14 +89,19 @@
 		drawPath: function(pathStr){
 			//draw path on paper
 			var path = this.paper.path(pathStr).attr({'stroke' : '#DEDEDE', 'stroke-dasharray': '--'});
-			//add a class for mesh and unmesh
-			$(path.node).attr('class', 'layout-line');
+			//consult mesh/unmesh flag from parentCt
+			if(this.parentCt.meshed)
+				//add a class for mesh and unmesh
+				$(path.node).attr('class', 'layout-line');
+			else
+				//add a class for mesh and unmesh
+				$(path.node).attr('class', 'layout-line hidden');
 		},
 		drawCircle: function(x, y){
 			//draw circle on paper
 			//inner circle, draw first, so it will be at lower index than outter circle, which has events on it.
 			var inner = this.paper.circle(x, y, this.radius - 2).attr({'stroke-width':'none', 'fill': '#000'});
-			$(inner.node).attr('class', 'end-point-inner'/* + (this.parentCt.endPointsHidden ? ' hidden' : '')*/);
+			$(inner.node).attr('class', 'end-point-inner' + (this.parentCt.meshed ? ' ' : ' hidden'));
 			//outer circle
 			var circle = this.paper.circle(x, y, this.radius).attr({'stroke' : '#DEDEDE', 'stroke-width':'2', 'fill': 'rgba(0, 0, 0, 0)'});
 			return circle;
@@ -107,7 +112,7 @@
 
 			var that = this;
 			//jquery2 cannot use addClass on SVG element
-			node.setAttribute('class', 'end-point draggble'/* + (this.parentCt.endPointsHidden ? ' hidden' : '')*/);
+			node.setAttribute('class', 'end-point draggble' + (this.parentCt.meshed ? ' ' : ' hidden'));
 			node.setAttribute('point-id', id);
 
 			$node.one('click', function(e){
@@ -164,7 +169,7 @@
 
 			//use body as the mousemove view port
 			$body
-			.on('mousemove', function(e){
+			.on('mousemove', _.throttle(function(e){
 				//prevent default
 				e.preventDefault();
 
@@ -191,8 +196,11 @@
 					//update all related lines and end points
 					that.updateRelated(constrains.hlines, constrains.vlines, constrains.endPoints, e, $node.attr('point-id'), originalCoords, {x: false, y: true});
 				}
+
+				//trigger coop event to re-generate layout and views
+				that.coop('layout-adjusted');
 				
-			})
+			}, 75))
 			.one('mouseup', function(e){
 				//prevent default
 				e.preventDefault();
@@ -383,6 +391,11 @@
 				}
 
 			});
+
+			//update points in the local storage
+			app.store.set('endPoints', app._global.endPoints);
+			app.store.set('horizontal-line', app._global['horizontal-line']);
+			app.store.set('vertical-line', app._global['vertical-line']);
 
 			this.redrawAll();
 		},
