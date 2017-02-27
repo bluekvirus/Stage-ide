@@ -435,6 +435,12 @@
 					this.$el.find('.view-menu').addClass('hidden');
 					//remove currently actived class
 					this.$el.find('.view-menu-list .view-menu-list-item').removeClass('active');
+					//remove active class on region
+					this.$el.find('.region-generate-view .region.active').removeClass('active');
+					//hide region-cover
+					this.adjustRegionCover(false);
+					//add region to list
+					this.regionView[this.currentRegion] = name;
 				}else{
 					//no name actived, raise notification
 					app.notify('No view selected!', 'You have not selected any view. Please selecte one.', 'error', {icon: 'fa fa-reddit-alien'});
