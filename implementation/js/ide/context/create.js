@@ -5,7 +5,7 @@
 		attributes: {
 			tabindex: "1" //make this div focusable in order to use keypress event
 		},
-		coop: ['template-added', 'template-reseted'],
+		coop: ['template-added', 'template-reseted', 'generate-overwrite'],
 		initialize: function(){
 			//indicate whether click event will be triggered or not
 			this.clickable = true;
@@ -17,8 +17,6 @@
 			this.generated = false;
 			//flag to indicate whether showing view configuration menu or not
 			this.viewMenu = false;
-			//flag to indicate whether inserting view is an existing one or not
-			this.viewExisted = false;
 			//meta to store currently focusing on which region
 			this.currentRegion = '';
 			//meta for region view table
@@ -150,8 +148,17 @@
 					return;
 				}
 
+				//if unlocked and unmeshed give a hint and return
+				if(that.generated && !that.locked && !that.meshed){
+					(new (app.get('Create.UnmeshUnlockInfo'))()).overlay({
+						effect: false,
+						class: 'unmesh-unlock-info-overlay create-overlay'
+					});
+					return;
+				}
+
 				//locked and generated means inserting views
-				if(that.generated && that.locked){
+				if((that.generated && that.locked) || $target.hasClass('region-cover')){
 
 					//setup current region
 					that.currentRegion = $target.attr('region');
@@ -159,6 +166,16 @@
 					//clean up input text
 					that.$el.find('.view-menu #view-menu-input').val('');
 					
+					//hightlight clicked region
+					//remove highlight
+					if(!$target.hasClass('region-cover')){
+						that.$el.find('.region-generate-view .region.active').removeClass('active');
+						$target.addClass('active');	
+						that.adjustRegionCover(true, $target);
+					}else{
+						that.adjustRegionCover(true);
+					}
+
 					//get view list
 					app.remote({
 						url: '/api/getViewList'
@@ -196,7 +213,7 @@
 			});
 
 			//click event to show menu
-			this.$el.find('.side-menu-trigger').on('click', app.throttle(function(e){
+			/*this.$el.find('.side-menu-trigger').on('click', app.throttle(function(e){
 				//prevent default events
 				e.preventDefault();
 
@@ -214,7 +231,7 @@
 				//flip side menu status in the local storage
 				var temp = app.store.get('__opened__');
 				app.store.set('__opened__', !temp);
-			}));
+			}));*/
 
 			//click side menu close all other menus
 			this.$el.find('.side-menu').on('click', app.throttle(function(e){
@@ -231,21 +248,21 @@
 					current = $this.val(),
 					flag = false;
 
-				//check whether same
+				//filter only
 				_.each(that.$el.find('.view-menu-list .view-menu-list-item'), function(el){
 					var $el = $(el);
-					if($el.text() === current){
-						$el.addClass('active');
-						flag = true;
+					//has valid input, check string
+					if(current){
+						if(_.string.include($el.text().toLowerCase(), current.toLowerCase()))
+							$el.removeClass('hidden');
+						else
+							$el.addClass('hidden');
+					}else{
+						//show all the views
+						$el.removeClass('hidden');
 					}
-					else
-						$el.removeClass('active');
 				});
 
-				if(flag) 
-					that.viewExisted = true;
-				else
-					that.viewExisted = false;
 			}, 150));
 
 			//set up templates holder height for scroll
@@ -272,11 +289,46 @@
             });
 		},
 		actions: {
+			'side-menu': function($self){
+				//flash current
+				if(!$self.hasClass('active'))
+					this.flashCurrent();
+				//
+				$self.toggleClass('active');
+				this.$el.find('.side-menu-list').toggleClass('active');
+
+				//toggle icon
+				$self.find('.fa').toggleClass('hidden');
+
+				//flip side menu status in the local storage
+				var temp = app.store.get('__opened__');
+				app.store.set('__opened__', !temp);
+			},
 			lock: function($self){
-				this.lockLayout($self);
+				//check whether already generated layout, if not gnerate, if yes just lock
+				if(this.generated)
+					this.lockLayout($self);
+				else
+					this.generateLayout();
 			},
 			generate: function(){//need to align lines, ignore margin of errors
-				this.generateLayout();
+				var that = this,
+					flag = false;
+				//check whether there are any view has been inserted
+				if(this.getViewIn('generate-view'))
+					flag = true;
+					/*_.each(_.keys(this.getViewIn('generate-view').regions), function(regionName){
+						if(that.getViewIn('generate-view').getViewIn(regionName))
+							flag = true;
+					});*/
+
+				if(flag)
+					(new (app.get('Create.GenerateConfirm'))()).overlay({
+						effect: false,
+						class: 'generate-confirm-overlay create-overlay danger-title'
+					});
+				else
+					this.generateLayout();
 			},
 			reset: function(){
 				this.reset();
@@ -285,7 +337,7 @@
 				var Save = app.get('Create.Save');
 				(new Save()).overlay({
 					effect: false,
-					class: 'save-overlay'
+					class: 'save-overlay create-overlay'
 				});
 			},
 			'load-template': function($self){
@@ -340,7 +392,7 @@
 					}
 				})).overlay({
 					effect: false,
-					class: 'delete-overlay',
+					class: 'delete-overlay create-overlay danger-title',
 				});
 			},
 			'new-template': function(){
@@ -360,50 +412,34 @@
 				this.meshLayout($self);
 			},
 			'existing-view-click': function($self){
-				//toggle active classes
+				//only toggles active classes, now only add existing class
 				$self.siblings().removeClass('active');
 				$self.addClass('active');
-
-				//update input text
-				this.$el.find('#view-menu-input').val($self.text());
-
-				//change flag
-				this.viewExisted = true;
 			},
 			'view-cancel': function(){
 				this.$el.find('.view-menu').addClass('hidden');
+				//clean active on region
+				if(this.generated) this.$el.find('.region-generate-view .region.active').removeClass('active');
+				//hide region-cover
+				this.adjustRegionCover(false);
 			},
 			'view-add': function(){
-				var name = this.$el.find('#view-menu-input').val(), Temp;
-				//existing view
-				if(this.viewExisted){
+				//check which one is active
+				var name = this.$el.find('.view-menu-list .view-menu-list-item.active').text();
+
+				//check whether there is an active name
+				if(name){
+					//show view
 					this.getViewIn('generate-view').show(this.currentRegion, name);
+					//hide menu
 					this.$el.find('.view-menu').addClass('hidden');
-				}
-				//new view
-				else{
-					Temp = app.view(name, {
-						template: [
-							'<h2>',
-							    '<sup><i class="fa fa-quote-left"></i></sup>',
-							    'Stage.js - template for newly generated<strong>' + name + '</strong> of type: VIEW <i class="fa fa-exclamation"></i>',
-							    '<sup><i class="fa fa-quote-right"></i></sup>',
-							'</h2>',
-						]
-					});
-					this.getViewIn('generate-view').show(this.currentRegion, Temp);
-					this.$el.find('.view-menu').addClass('hidden');
+					//remove currently actived class
+					this.$el.find('.view-menu-list .view-menu-list-item').removeClass('active');
+				}else{
+					//no name actived, raise notification
+					app.notify('No view selected!', 'You have not selected any view. Please selecte one.', 'error', {icon: 'fa fa-reddit-alien'});
 				}
 
-				//save a region <-> view table
-				//if view exists save name, if it is newly constructed view save instance
-				if(this.viewExisted)
-					this.regionView[this.currentRegion] = name;
-				else
-					this.regionView[this.currentRegion] = Temp;
-
-				console.log(this.regionView);
-				
 			}
 		},
 		checkConstrain: function(e){
@@ -717,6 +753,29 @@
 			app.debug('h-lines exported from generate action', app._global['horizontal-line']);
 			app.debug('v-lines exported from generate action', app._global['vertical-line']);
 		},
+		adjustRegionCover: function(show, $el){
+			if(show){
+				//for when region-cover is already being shown
+				if(!$el) return;
+
+				var left = $el.offset().left,
+				top = $el.offset().top,
+				height = $el.height(),
+				width = $el.width();
+
+				var hem = parseFloat(getComputedStyle(document.body).fontSize),
+					wem = parseFloat(getComputedStyle(document.body).fontSize);
+
+				this.$el.find('.region-cover').css({
+					left: left + wem + 'px',
+					top: top + hem + 'px',
+					height: height - 2 * hem + 'px',
+					width: width - 2 * wem + 'px'
+				}).removeClass('hidden');
+			}else{
+				this.$el.find('.region-cover').addClass('hidden');
+			}
+		},
 		onLayoutAdjusted: function(){
 			var that = this;
 			//only response if some layout has already been generated
@@ -740,6 +799,9 @@
 
 			//send notification
 			if(!userReset) app.notify('Layout Resetted.', 'You have changed original layout. The generated view has been resetted.', 'error', {icon: 'fa fa-reddit-alien'});
+		},
+		onGenerateOverwrite: function(){
+			this.generateLayout();
 		}
 	});
 

@@ -7,7 +7,7 @@
 
 	app.view('Create.Guide', {
 		template: '@view/create/guide.html',
-		coop:['guideline-move', 'guideline-switch', 'guideline-click', 'gen-new-line'],
+		coop:['guideline-move', 'guideline-switch', 'guideline-click', 'gen-new-line', 'line-layout-reset-confirmed'],
 		initialize: function(){
 			this._horizontal = true; //flag indicates that now showing horizontal line or vertical line
 			this._x = 0; //0 - 100 in percentage
@@ -79,6 +79,20 @@
 			this.setupGuideLines(true);
 		},
 		onGuidelineClick: function(){
+			//check whether this click will reset previously generated layout, if yes trigger layout reset event
+			if(this.parentCt.generated)
+				(new (app.get('Create.LayoutResetConfirm'))()).overlay({
+					effect: false,
+					class: 'layout-reset-confirm-overlay create-overlay danger-title'
+				});
+			else
+				this.confirmAdd();
+		},
+		onLineLayoutResetConfirmed: function(){
+			this.coop('layout-resetted');
+			this.confirmAdd();	
+		},
+		confirmAdd: function(){
 			var $horizontal = this.$el.find('.horizontal-line'),
 				$vertical = this.$el.find('.vertical-line');
 			//variables for later use
@@ -86,10 +100,6 @@
 				newStartPoint, newEndPoint,
 				occupied, oldLine,
 				tolerance = app._global.tolerance;
-
-			//check whether this click will reset previously generated layout, if yes trigger layout reset event
-			if(this.parentCt.generated)
-				this.coop('layout-resetted');
 
 			if(this._horizontal){//horizontal line
 

@@ -26,6 +26,11 @@ body,
 		width: 100%;
 		background-color: transparent;
 		position: relative;
+		.region-cover {
+			position: absolute;
+			background-color: #fff;
+			z-index: 5;
+		}
 		.locker {
 			position: absolute;
 			left: 0;
@@ -40,6 +45,17 @@ body,
 				top: 0;
 				bottom: 0;
 				z-index: 4;
+				.region {
+					&.active {
+						background: repeating-linear-gradient(
+							-45deg,
+							@background,
+							@background 10px,
+							@border 10px,
+							@border 20px
+						);
+					}
+				}
 			}
 		}
 		.view-menu {
@@ -47,7 +63,7 @@ body,
 			left: 0;
 			top: 0;
 			width: 250px;
-			z-index: 5;
+			z-index: 6;
 			background-color: @background;
 			border: 1px solid @border;
 			box-shadow: 3px 3px 5px @border;
@@ -93,7 +109,7 @@ body,
 			position: absolute;
 			right: 0px;
 			top: 0px;
-			z-index: 5;
+			z-index: 6;
 			background-color: @side-background;
 			height: 2.4em;
 			width: 2.4em;
@@ -117,7 +133,7 @@ body,
 			right: @side-menu-inital;
 			top: 0px;
 			bottom: 0px;
-			z-index: 4;
+			z-index: 6;
 			width: @side-menu-width;
 			text-align: center;
 			background-color: @side-background;
@@ -346,13 +362,12 @@ body,
 }
 
 //------------------------------- overlay styling -------------------------------//
-.save-overlay,
-.delete-overlay {
+.create-overlay {
 	background-color: transparent;
 	z-index: 999;
 }
 
-.delete-overlay {
+.danger-title {
 	.modal-title {
 		color: @brand-danger;
 	}

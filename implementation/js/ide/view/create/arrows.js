@@ -2,7 +2,7 @@
 
 	app.view('Create.Arrows', {
 		template: '@view/create/arrows.html',
-		coop: ['click-endpoint'],
+		coop: ['click-endpoint', 'point-layout-reset-confirmed'],
 		lines: {//store lines attached to current point
 			up: '',
 			down: '',
@@ -65,18 +65,33 @@
 		},
 		actions: {
 			delete: function($self){
-				if($self.find('i').hasClass('deletable')){//deletable
-					var line = this.lines[$self.data('direction')];
-					this.deleteLine(line, $self.data('direction'));
-					
-					//if parectView has generated layout, send reset event
-					if(this.parentCt.generated)
-						this.coop('layout-resetted');
-
-					this.coop('sync-local');
-				}else{//NOT deletable
-					app.notify('Cannot Delete', 'This line cannot be deleted!', 'error', {icon: 'fa fa-reddit-alien'});
+				//if parectView has generated layout, send reset event
+				if(this.parentCt.generated){
+					(new (app.get('Create.LayoutResetConfirm'))({
+						data: {
+							anchor: $self
+						}
+					})).overlay({
+						effect: false,
+						class: 'layout-reset-confirm-overlay create-overlay danger-title',
+					});
 				}
+				else
+					this.confirmDelete($self);
+			}
+		},
+		onPointLayoutResetConfirmed: function($anchor){
+			this.coop('layout-resetted');
+			this.confirmDelete($anchor);
+		},
+		confirmDelete: function($self){
+			if($self.find('i').hasClass('deletable')){//deletable
+				var line = this.lines[$self.data('direction')];
+				this.deleteLine(line, $self.data('direction'));
+
+				this.coop('sync-local');
+			}else{//NOT deletable
+				app.notify('Cannot Delete', 'This line cannot be deleted!', 'error', {icon: 'fa fa-reddit-alien'});
 			}
 		},
 		closeMenu: function(){
