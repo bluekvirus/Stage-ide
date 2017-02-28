@@ -92,9 +92,9 @@ function constructLayout(region, hlines, vlines, counter){
 			}), counter);
 
 			if(subRegionLayout)
-				layout.push([(yLevel - currentTop) + ':#' + _.uniqueId('flex-region-'), subRegionLayout.layout]);
+				layout.push([trimNumber(yLevel - currentTop) + ':#' + _.uniqueId('flex-region-'), subRegionLayout.layout]);
 			else
-				layout.push((yLevel - currentTop) + ':id="' + _.uniqueId('flex-region-') + '" region="gen-h-' + counter.count + '"');
+				layout.push(trimNumber(yLevel - currentTop) + ':id="' + _.uniqueId('flex-region-') + '" region="gen-h-' + counter.count + '"');
 
 			currentTop = yLevel;
 		});
@@ -115,9 +115,9 @@ function constructLayout(region, hlines, vlines, counter){
 			}), counter);
 
 			if(subRegionLayout)
-				layout.push([(xLevel - currentLeft) + ':#' + _.uniqueId('flex-region-'), subRegionLayout.layout]);
+				layout.push([trimNumber(xLevel - currentLeft) + ':#' + _.uniqueId('flex-region-'), subRegionLayout.layout]);
 			else
-				layout.push((xLevel - currentLeft) + ':id="' + _.uniqueId('flex-region-') + '" region="gen-v-' + counter.count + '"');
+				layout.push(trimNumber(xLevel - currentLeft) + ':id="' + _.uniqueId('flex-region-') + '" region="gen-v-' + counter.count + '"');
 
 			currentLeft = xLevel;
 		});
@@ -160,4 +160,8 @@ function followTheLine(next, until, level, lines, direction){
 			return followTheLine(l[direction + '2'], until, level, lines, direction);
 	}
 	return false;
+}
+
+function trimNumber(number){
+	return parseFloat(number.toFixed(2));
 }

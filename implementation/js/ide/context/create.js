@@ -5,7 +5,7 @@
 		attributes: {
 			tabindex: "1" //make this div focusable in order to use keypress event
 		},
-		coop: ['template-added', 'template-reseted', 'generate-overwrite'],
+		coop: ['template-added', 'template-reseted', 'generate-overwrite', 'user-reset'],
 		initialize: function(){
 			//indicate whether click event will be triggered or not
 			this.clickable = true;
@@ -135,6 +135,10 @@
 			});
 
 			this.$el.on('click', function(e){
+				//check whether side menu is active, if yes close it
+				if(that.$el.find('.side-menu-trigger').hasClass('active'))
+					that.toggleSideMenu(that.$el.find('.side-menu-trigger'));
+
 				var $target = $(e.target);
 				//if end point menu is being shown, close menu ONLY and no further operations
 				var Menu = that.getViewIn('arrows');
@@ -275,9 +279,15 @@
 			//for resize
 			this.listenTo(app, 'app:resized', function(){
 				var height = that.$el.height();
+				//side menu
 				that.$el.find('.side-menu-templates-holder').css({
 					height: (height - blockHeight - adjust) + 'px'
 				});
+
+				//region-cover
+				if(!that.$el.find('.region-cover').hasClass('hidden')){
+					that.adjustRegionCover(true, that.$el.find('.region.active'));
+				}
 			});
 
 			//for animation end
@@ -290,19 +300,7 @@
 		},
 		actions: {
 			'side-menu': function($self){
-				//flash current
-				if(!$self.hasClass('active'))
-					this.flashCurrent();
-				//
-				$self.toggleClass('active');
-				this.$el.find('.side-menu-list').toggleClass('active');
-
-				//toggle icon
-				$self.find('.fa').toggleClass('hidden');
-
-				//flip side menu status in the local storage
-				var temp = app.store.get('__opened__');
-				app.store.set('__opened__', !temp);
+				this.toggleSideMenu($self);
 			},
 			lock: function($self){
 				//check whether already generated layout, if not gnerate, if yes just lock
@@ -312,15 +310,17 @@
 					this.generateLayout();
 			},
 			generate: function(){//need to align lines, ignore margin of errors
-				var that = this,
-					flag = false;
+				this.generateLayout(false, true);
+				// var that = this,
+				// 	flag = false;
+
 				//check whether there are any view has been inserted
-				if(this.getViewIn('generate-view'))
+				/*if(this.getViewIn('generate-view'))
 					flag = true;
-					/*_.each(_.keys(this.getViewIn('generate-view').regions), function(regionName){
-						if(that.getViewIn('generate-view').getViewIn(regionName))
-							flag = true;
-					});*/
+					// _.each(_.keys(this.getViewIn('generate-view').regions), function(regionName){
+					// 	if(that.getViewIn('generate-view').getViewIn(regionName))
+					// 		flag = true;
+					// });
 
 				if(flag)
 					(new (app.get('Create.GenerateConfirm'))()).overlay({
@@ -328,10 +328,13 @@
 						class: 'generate-confirm-overlay create-overlay danger-title'
 					});
 				else
-					this.generateLayout();
+					this.generateLayout();*/
 			},
 			reset: function(){
-				this.reset();
+				(new (app.get('Create.ResetConfirm'))()).overlay({
+					effect: false,
+					class: 'generate-reset-overlay create-overlay danger-title'
+				});
 			},
 			save: function(){
 				var Save = app.get('Create.Save');
@@ -447,6 +450,21 @@
 				}
 
 			}
+		},
+		toggleSideMenu: function($self){
+			//flash current
+			if(!$self.hasClass('active'))
+				this.flashCurrent();
+			//
+			$self.toggleClass('active');
+			this.$el.find('.side-menu-list').toggleClass('active');
+
+			//toggle icon
+			$self.find('.fa').toggleClass('hidden');
+
+			//flip side menu status in the local storage
+			var temp = app.store.get('__opened__');
+			app.store.set('__opened__', !temp);
 		},
 		checkConstrain: function(e){
 			var that = this;
@@ -675,7 +693,7 @@
 			else
 				this.meshLayout(this.$el.find('.operations-item.hide-button'));
 		},
-		generateLayout: function(adjusting){
+		generateLayout: function(adjusting, overlay){
 			var x = [], y = [], that = this;
 			//generate a list of x and y coordinates from end points
 			_.each(app._global.endPoints, function(endPoint, pid){
@@ -718,40 +736,108 @@
 				checkContained(x, vline, 'x');
 			});
 
-			app.remote({
-				url: '/api/generate',
-				payload: {
-					endPoints: app._global.endPoints,
-					//max length h/v lines are 100 (%).
-					hlines: app._global['horizontal-line'],
-					vlines: app._global['vertical-line'],
-				}
-			})
-			.done(function(data){
-				if(!adjusting) app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
-				var _Demo = app.view(/*'_Demo', */{
-					layout: _.extend(data.layout)
-				});
-				that.show('generate-view', _Demo);
-				if(!adjusting){
-					that.generateLock();
-					that.generateUnmesh();	
-				}else{
-					//if calls from adjusting layout, then re-render views
-					if(_.keys(that.regionView).length){
-						_.each(that.regionView, function(v, r){
-							//load view into the region
-							that.getViewIn('generate-view').show(r, v);
-						});
+			if(overlay){//only show overlay, when user click generate directly
+				app.remote({
+					url: '/api/generate',
+					payload: {
+						endPoints: app._global.endPoints,
+						//max length h/v lines are 100 (%).
+						hlines: app._global['horizontal-line'],
+						vlines: app._global['vertical-line'],
 					}
-				}
-			})
-			.fail(function(error){
-				app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
-			});
+				})
+				.done(function(data){
+					
+					app.view('_Demo', {
+						layout: _.extend(data.layout, {
+							width: 400 * 1.5,
+							height: 300 * 1.5,
+						}), 
+						attributes: {style: 'border:2px solid #FFF;'},
+						onReady: function(){
+							_.each(this.regions, function(def, r){
+								this[r].$el.css('color', '#FFF').text(r.split('-')[2]);
+							}, this);
+						},
+					});
+					app.view('_Code', {
+						template: '<textarea style="width:100%;" rows="20"></textarea>',
+						onReady: function(){
+							this.$el.find('textarea').val(JSON.stringify(data.layout).replace(/\\/g, ""));
+						},
+					});
+					app.view({
+						data: {
+							tabs: ['Preview', 'Layout'],
+						},
+						template: [
+							'<ul class="nav nav-tabs">',
+								'{{#tabs}}<li activate="single" tabId="{{.}}"><a>{{.}}</a></li>{{/tabs}}',
+							'</ul>',
+							'<div region="tabs"></div>',
+							'<div><button action="close" type="button" class="btn btn-primary btn-lg btn-block">Close</button></div>',
+						],
+						onReady: function(){
+							//activate default tab
+							this.activate('single', 0, true);
+						},
+						onItemActivated: function($item){
+							var tabId = $item.attr('tabId');
+							if(tabId === 'Preview')
+								this.tab('tabs', app.get('_Demo'), tabId);
+							else
+								this.tab('tabs', app.get('_Code'), tabId);
+						},
+						actions: {
+							close: function(){
+								this.close();
+							}
+						}}, true)
+					.overlay({
+						effect: false,
+						class: 'generate-overlay',
+					});
+				})
+				.fail(function(error){
+					app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
+				});
 
-			//set generated flag to true
-			this.generated = true;
+			}else{
+				app.remote({
+					url: '/api/generate',
+					payload: {
+						endPoints: app._global.endPoints,
+						//max length h/v lines are 100 (%).
+						hlines: app._global['horizontal-line'],
+						vlines: app._global['vertical-line'],
+					}
+				})
+				.done(function(data){
+					if(!adjusting) app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
+					var _Demo = app.view(/*'_Demo', */{
+						layout: _.extend(data.layout)
+					});
+					that.show('generate-view', _Demo);
+					if(!adjusting){
+						that.generateLock();
+						that.generateUnmesh();	
+					}else{
+						//if calls from adjusting layout, then re-render views
+						if(_.keys(that.regionView).length){
+							_.each(that.regionView, function(v, r){
+								//load view into the region
+								that.getViewIn('generate-view').show(r, v);
+							});
+						}
+					}
+				})
+				.fail(function(error){
+					app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
+				});
+
+				//set generated flag to true
+				this.generated = true;
+			}
 
 			//debug log
 			app.debug('x array', x, 'y array', y);
@@ -808,6 +894,9 @@
 		},
 		onGenerateOverwrite: function(){
 			this.generateLayout();
+		},
+		onUserReset: function(){
+			this.reset();
 		}
 	});
 

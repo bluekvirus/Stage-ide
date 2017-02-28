@@ -15,6 +15,10 @@
 
 		},
 		onClickEndpoint: function(e){
+			//hide side menu if necesary
+			var $trigger = this.parentCt.$el.find('.side-menu-trigger');
+			if($trigger.hasClass('active'))
+				this.parentCt.toggleSideMenu($trigger);
 			//reset
 			this.cleanIndication();
 			//vars

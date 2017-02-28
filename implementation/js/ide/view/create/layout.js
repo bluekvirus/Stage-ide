@@ -138,6 +138,11 @@
 			});
 		},
 		mousedownCallback: function(e, $node, $body){
+			//hide side menu if necesary
+			var $trigger = this.parentCt.$el.find('.side-menu-trigger');
+			if($trigger.hasClass('active'))
+				this.parentCt.toggleSideMenu($trigger);
+			
 			var that = this,
 				id = $node.attr('point-id');
 

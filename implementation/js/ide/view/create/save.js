@@ -33,6 +33,21 @@
 					label: 'col-md-4',
 					field: 'col-md-8',
 				},
+			},
+			'view-name': {
+				type: 'text',
+				label: 'View Name(optional)',
+				help: 'the names of views use this layout configuration, separated by ";"',
+				validate: {
+					fn: function(val, parentCt){
+						if( val === 'mainview')
+							return 'The name "' + val + '" is reserved for system use.';
+					},
+				},
+				layout: {
+					label: 'col-md-4',
+					field: 'col-md-8',
+				},	
 			}
 		},
 		actions: {
@@ -47,6 +62,7 @@
 				temp.endPoints = app._global.endPoints;
 				temp['horizontal-line'] = app._global['horizontal-line'];
 				temp['vertical-line'] = app._global['vertical-line'];
+				temp['view-name'] = this.getEditor('view-name').getVal();
 
 				//store
 				app.store.remove(name);
@@ -64,6 +80,7 @@
 				temp.endPoints = app._global.endPoints;
 				temp['horizontal-line'] = app._global['horizontal-line'];
 				temp['vertical-line'] = app._global['vertical-line'];
+				temp['view-name'] = this.getEditor('view-name').getVal();
 
 				if(app.store.get(name)){//overwrite
 					this.$el.find('.overwrite-message .name').text(name);

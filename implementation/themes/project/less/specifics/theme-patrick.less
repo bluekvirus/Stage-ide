@@ -30,6 +30,8 @@ body,
 			position: absolute;
 			background-color: #fff;
 			z-index: 5;
+			opacity: 0.8;
+			border-radius: 6px;
 		}
 		.locker {
 			position: absolute;
@@ -370,6 +372,22 @@ body,
 .danger-title {
 	.modal-title {
 		color: @brand-danger;
+	}
+}
+
+.generate-overlay {
+	z-index: 999;
+	background-color: rgba(0, 0, 0, 0.5);
+	.region-tabs {
+		width: 600px;
+		height: 450px;
+		.regional-code {
+			textarea {
+				user-select:text !important;
+				height: 450px;
+				resize: none;
+			}
+		}
 	}
 }
 
