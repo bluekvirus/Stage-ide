@@ -239,6 +239,8 @@
 
 			//click side menu close all other menus
 			this.$el.find('.side-menu').on('click', app.throttle(function(e){
+				e.preventDefault();
+				e.stopPropagation();
 				//view menu
 				that.$el.find('.view-menu').addClass('hidden');
 
