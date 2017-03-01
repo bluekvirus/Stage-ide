@@ -12,6 +12,7 @@ cp -a ./dist/flexlayout/. ../../Spliter/flexLayout/
 #cd to flexlayout folder and publish with given tag
 cd ../../Spliter/flexLayout
 #commit and push
+git pull
 git add --all
 git commit -am "sync upgrade to $1"
 git push origin master

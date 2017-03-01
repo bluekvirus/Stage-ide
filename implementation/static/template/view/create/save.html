@@ -5,6 +5,10 @@
             <h4 class="modal-title">Save Template</h4>
         </div>
         <div class="modal-body" region="body">
+            <div class="new-warning {{#unless new-gen}}hidden{{/unless}} text-danger">
+                <strong>After creating a new template, all progress will be lost.</strong>
+                <strong>Do you want to save the progress?</strong>
+            </div>
         	<div class="form form-horizontal">
         		<div editor="name"></div>
                 <div editor="view-name"></div>
@@ -17,6 +21,7 @@
         </div>
         <div class="modal-footer">
             <div class="btn btn-link" data-dismiss="modal" action="close">Close</div>
+            {{#if new-gen}}<div class="btn btn-danger" action="continue">Continue without Saving</div>{{/if}}
             <div class="btn btn-success" action="save">Save</div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 /**
- * flexLayout v0.2.4, http://TBD
+ * flexLayout v0.3.0, http://TBD
  * ===================================
  * Highly customizable easy to use, light weight, layout/split jQuery plugin
  * 
@@ -10,8 +10,10 @@
 ;(function($){
 
 	$.fn.flexLayout = function(layout, opts, _cb/*TBI*/){
+    
 		var _options = {}, /*store options*/
 			_layoutArr = []; /*store array*/
+
 		//check whether layout is given
 		if($.isPlainObject(layout)){
 			opts = layout;
@@ -50,10 +52,11 @@
 	 */
 	$.fn.flexLayout.defaults = {
 		/*defines the final layout, ['...', '...', ['...', ['...', '...']]]*/
-		layout: [
-			'80px:class="top banner"',
-			['1:id="content"', ['1:.content-left','2:.content-right']]
-		],
+		/*layout: [
+			'80px:class="top banner":"<div>This is top banner.</div>"',
+			['1:id="content"', ['1:.content-left:"This is left content."','2:.content-right']]
+		],*/
+		layout: [], //do not give any default.
 		options: {
 			/*defines the height of the requesting element; '...string...'*/
 			height: '100%',
@@ -98,12 +101,15 @@
 				_style = /(px|em)/.test(_dimension) ? 'style = "flex: 0 0 ' + _dimension + ';" ' : 'style="flex: ' + _dimension + ' 1 0;" ', 
 				//check attributes
 				_attribute = $.isArray(config) ? trimAttr(config[0].split(':')[1]) : trimAttr(config.split(':')[1]),
+				//added for insert html string
+				_html = $.isArray(config) ? '' : ((config.split(':')[2]) ? config.split(':')[2].replace(/^"|^'/, '').replace(/"$|'$/, '') : ''),
 				//make block object
-				_$block = $('<div ' + _style + _attribute + '></div>'),
+				_$block = $('<div ' + _style + _attribute + '>' + _html + '</div>'),
 				//save a copy of arrays, it might be multiple same level of blocks; therefore do not 'shift' on original array
 				_adjust = $.isArray(opts.adjust) ? opts.adjust.slice() : opts.adjust, //use Array.slice() to copy an original array
 				_bars = $.isArray(opts.bars) ? opts.bars.slice() : opts.bars,
 				_dir = $.isArray(opts.dir) ? opts.dir.slice() : opts.dir;
+
 			//append block
 			_$block.appendTo($el);
 			//insert bars if bar is true or adjustable is true
@@ -237,7 +243,7 @@
 		$bar.on('mousedown', function(e){
 			/**
 			 * Note: browsers register all the listening event at the second phase of JS loading.
-			 * 		 That is, all the DOM elements are inserted even those ones inserted by the JS.
+			 * 		 That is, after all the DOM elements are inserted even those ones inserted by the JS.
 			 * 		 Therefore one might think the next block 'has not been inserted' through the code;
 			 * 		 however by the time browsers register this event the next block is already there.
 			 */

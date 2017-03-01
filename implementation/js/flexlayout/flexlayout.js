@@ -1,5 +1,5 @@
 /**
- * flexLayout v0.4.0, http://TBD
+ * flexLayout v0.3.0, http://TBD
  * ===================================
  * Highly customizable easy to use, light weight, layout/split jQuery plugin
  * 
@@ -95,9 +95,6 @@
 		$el.css({display: 'flex', 'flex-flow': _flow,  'justify-content': $.fn.flexLayout.flexConfig['justify-content']});
 		//go through layout array
 		$.each(layout, function(index, config){
-
-				console.log(index, config);
-
 				//get size
 			var _dimension = $.isArray(config) ? config[0].split(':')[0] : config.split(':')[0],
 				//check whether fixed or flexible

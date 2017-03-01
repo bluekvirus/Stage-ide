@@ -5,7 +5,7 @@
 		attributes: {
 			tabindex: "1" //make this div focusable in order to use keypress event
 		},
-		coop: ['template-added', 'template-reseted', 'generate-overwrite', 'user-reset'],
+		coop: ['template-added', 'template-reseted', 'generate-overwrite', 'user-reset', 'new-template-confirmed', 'save-region-view-config'],
 		initialize: function(){
 			//indicate whether click event will be triggered or not
 			this.clickable = true;
@@ -196,7 +196,7 @@
 					if(!_.string.include($target.attr('class'), 'side-menu')){
 						that.$el.find('.view-menu').removeClass('hidden').css({
 							top: (($window.height() - e.pageY) < that.$el.find('.view-menu').height()) ? (e.pageY - that.$el.find('.view-menu').height()) : e.pageY,
-							left: e.pageX
+							left: (($window.width() - e.pageX) < that.$el.find('.view-menu').width()) ? (e.pageX - that.$el.find('.view-menu').width()) : e.pageX,
 						});	
 					}else{
 						that.$el.find('.view-menu').addClass('hidden');
@@ -379,6 +379,12 @@
 				$self.addClass('active');
 				//change current loaded template name
 				this.$el.find('.side-menu-list .current-name').text(name);
+
+				//for region and views, if locked generate view directly
+				// this.regionView = temp.regionView;
+				// this.lockLayout(this.$el.find('.lock-button'));
+				// this.generateLayout();
+
 				//flash text
 				this.flashCurrent();
 				//set current
@@ -399,17 +405,15 @@
 				});
 			},
 			'new-template': function(){
-				//reset locally stored current
-				app.store.remove('current');
-
-				//remove all the active class
-				this.$el.find('.side-menu-templates-holder .side-menu-item-text').removeClass('active');
-
-				//change template value to untitled
-				this.$el.find('.side-menu-list .current-name').text('untitled');
-
-				//reset layout
-				this.reset();
+				var Save = app.get('Create.Save');
+				(new Save({
+					data: {
+						'new-gen': true
+					}
+				})).overlay({
+					effect: false,
+					class: 'save-overlay create-overlay',
+				});
 			},
 			'hide-end-points': function($self){
 				this.meshLayout($self);
@@ -450,6 +454,19 @@
 				}
 
 			}
+		},
+		newTemplate: function(){
+			//reset locally stored current
+			app.store.remove('current');
+
+			//remove all the active class
+			this.$el.find('.side-menu-templates-holder .side-menu-item-text').removeClass('active');
+
+			//change template value to untitled
+			this.$el.find('.side-menu-list .current-name').text('untitled');
+
+			//reset layout
+			this.reset();
 		},
 		toggleSideMenu: function($self){
 			//flash current
@@ -570,6 +587,15 @@
 
 			this.onLayoutResetted(true);
 
+			//reset lock
+			if(this.locked)
+				this.lockLayout(this.$el.find('.lock-button'));
+			if(!this.meshed)
+				this.meshLayout(this.$el.find('.operations-item .hide-button'));
+
+			//hide view-menu
+			this.$el.find('.view-menu').addClass('hidden');
+			
 			//refresh
 			this.show('guide', 'Create.Guide');
 			//layout svg
@@ -580,7 +606,7 @@
 		flashCurrent: function(){
 			this.$el.find('.side-menu-list .current-name-holder').addClass('flash');
 		},
-		lockLayout: function($lockButton){
+		lockLayout: function($lockButton, unlock){
 			//check if already generated layout
 			if(this.generated){
 				//check if try to unlock or lock
@@ -591,6 +617,13 @@
 
 					//change lock div z-index to -1, for easier dragging
 					this.$el.find('.locker').css({'z-index': -2}).removeClass('hidden');
+
+					//hide view adding menu
+					this.$el.find('.view-menu').addClass('hidden');
+					//clean active on region
+					this.$el.find('.region-generate-view .region.active').removeClass('active');
+					//hide region-cover
+					this.adjustRegionCover(false);
 
 				}else{//try to lock
 					//if meshed make it unmeshed
@@ -897,7 +930,18 @@
 		},
 		onUserReset: function(){
 			this.reset();
-		}
+		},
+		onNewTemplateConfirmed: function(name){
+			//reset
+			this.newTemplate();
+		},
+		onSaveRegionViewConfig: function(name){
+			//store region and view relationsip
+			var temp = app.store.get(name);
+			temp.regionView = this.regionView;
+			app.store.remove(name);
+			app.store.set(name, temp);
+		},
 	});
 
 	function checkContained(arr, obj, key){

@@ -67,7 +67,15 @@
 				//store
 				app.store.remove(name);
 				app.store.set(name, temp);
+				app.coop('save-region-view-config', name);
 
+				if(this.get('new-gen'))
+					app.coop('new-template-confirmed', name);
+
+				this.close();
+			},
+			continue: function(){
+				app.coop('new-template-confirmed');
 				this.close();
 			},
 			cancel: function(){
@@ -88,6 +96,10 @@
 				}else{//no overwrite
 					app.store.set(name, temp);
 					app.coop('template-added', name);
+					app.coop('save-region-view-config', name);
+					if(this.get('new-gen'))
+						app.coop('new-template-confirmed', name);
+					
 					app.notify('Saved!', 'Template <strong>' + name + '</strong> has been saved.', 'ok', {icon: 'fa fa-fort-awesome'});
 					this.close();
 				}
