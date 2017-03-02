@@ -143,9 +143,17 @@ body,
 			.side-menu-item {
 				border-bottom: 1px solid @side-border;
 				cursor: pointer;
+				position: relative;
+				z-index: 7;
 				>span {
 					font-weight: 600;
 					color: #000;
+					position: relative;
+					z-index: 8;
+				}
+				>div {
+					position: relative;
+					z-index: 8;
 				}
 				&:not(.side-menu-section) {
 					&:not(.current-name-holder){

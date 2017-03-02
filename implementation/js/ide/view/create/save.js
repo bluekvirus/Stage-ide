@@ -25,7 +25,7 @@
 					fn: function(val, parentCt){
 						if( val === 'horizontal-line' || val === 'vertical-line' || 
 							val === 'endPoints' || val === 'current' || val === 'untitled' ||
-							val === '__opened__')
+							val === '__opened__'|| val === 'regionView') 
 							return 'The name "' + val + '" is reserved for system use.';
 					},
 				},
@@ -72,11 +72,21 @@
 				if(this.get('new-gen'))
 					app.coop('new-template-confirmed', name);
 
+				if(this.get('switching'))
+					app.coop('save-template-switch-confirmed', {
+						name: name,
+						$button: this.get('switching')
+					});
+
 				this.close();
 			},
-			continue: function(){
+			'continue-new': function(){
 				app.coop('new-template-confirmed');
 				this.close();
+			},
+			'continue-switch': function(){
+				app.coop('continue-template-switch', this.get('switching'));
+				this.close();	
 			},
 			cancel: function(){
 				this.$el.find('.overwrite-message').addClass('hidden');
@@ -99,6 +109,12 @@
 					app.coop('save-region-view-config', name);
 					if(this.get('new-gen'))
 						app.coop('new-template-confirmed', name);
+
+					if(this.get('switching'))
+						app.coop('save-template-switch-confirmed', {
+							name: name,
+							$button: this.get('switching')
+						});
 					
 					app.notify('Saved!', 'Template <strong>' + name + '</strong> has been saved.', 'ok', {icon: 'fa fa-fort-awesome'});
 					this.close();

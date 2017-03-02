@@ -30,7 +30,8 @@
 	app.addInitializer(function(){
 		//reload previously stored configuration
 		
-		var endPoints, hlines, vlines, temp;
+		var endPoints, hlines, vlines, temp, regionView;
+
 
 		if(app.store.get('current')){//has currently actived template
 
@@ -38,12 +39,14 @@
 			endPoints = temp.endPoints;
 			hlines = temp['horizontal-line'];
 			vlines = temp['vertical-line'];
+			regionView = temp.regionView;
 
 		}else{//no currently actived template
 			
 			endPoints = app.store.get('endPoints');
 			hlines = app.store.get('horizontal-line');
 			vlines = app.store.get('vertical-line');
+			regionView = app.store.get('regionView');
 		}
 		
 		if(endPoints && hlines && vlines){
@@ -51,7 +54,10 @@
 			app._global.endPoints = endPoints;
 			app._global['horizontal-line'] = hlines;
 			app._global['vertical-line'] = vlines;
+			app._global.regionView = regionView;
 		}
+
+		console.log(app.store.get('regionView'), app._global && app._global.regionView);
 	});
 
 	app.addInitializer(function(){

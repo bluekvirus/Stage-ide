@@ -67,7 +67,9 @@
 			/*defines whether the width/height of created blocks can be adjusted or not, boolean or [boolean, boolean]*/
 			adjust: false,
 			/*defines the style of divide bars between created blocks, {...css object}, '...string of class name...', boolean or [..., ..., ..., ...]*/
-			bars: {flex: '0 0 2px', 'background-color': '#ddd'}
+			bars: {flex: '0 0 2px', 'background-color': '#ddd'},
+			/*append or rewrite selected div*/
+			append: false
 		}
 	};
 
@@ -89,20 +91,26 @@
 	 * main layout setup function
 	 */
 	function setLayout($el, layout, opts, _tq){
+		//check whether append, if not. empty first
+		if(!opts.append) $el.empty();
 		//check direction configure to setup flex-flow
 		var _flow = (($.isArray(opts.dir) ? opts.dir[0] : opts.dir) === 'v') ? 'row' : 'column';
 		//setup flex parameters
 		$el.css({display: 'flex', 'flex-flow': _flow,  'justify-content': $.fn.flexLayout.flexConfig['justify-content']});
 		//go through layout array
 		$.each(layout, function(index, config){
+			//split config before using. save calculation time.
+			var tempConfig = $.isArray(config) ? config[0].split(':') : config.split(':');
+			
+			//setup flexboxes
 				//get size
-			var _dimension = $.isArray(config) ? config[0].split(':')[0] : config.split(':')[0],
+			var _dimension = tempConfig[0],
 				//check whether fixed or flexible
 				_style = /(px|em)/.test(_dimension) ? 'style = "flex: 0 0 ' + _dimension + ';" ' : 'style="flex: ' + _dimension + ' 1 0;" ', 
 				//check attributes
-				_attribute = $.isArray(config) ? trimAttr(config[0].split(':')[1]) : trimAttr(config.split(':')[1]),
+				_attribute = trimAttr(tempConfig[1]),
 				//added for insert html string
-				_html = $.isArray(config) ? '' : ((config.split(':')[2]) ? config.split(':')[2].replace(/^"|^'/, '').replace(/"$|'$/, '') : ''),
+				_html = $.isArray(config) ? '' : ((tempConfig[2]) ? tempConfig[2].replace(/^"|^'|"$|'$/g, '') : ''),
 				//make block object
 				_$block = $('<div ' + _style + _attribute + '>' + _html + '</div>'),
 				//save a copy of arrays, it might be multiple same level of blocks; therefore do not 'shift' on original array
@@ -181,53 +189,71 @@
 	/**
 	 * Trim attributes given by user, if user uses selectors style(e.g. #, .)
 	 *
-	 * Note: if using selector style, the function performs under the assumption that only one 'id' exits.
-	 * 		 That is, there is only one '#' in the selector style string.
+	 * Note: Now the attributes takes variabes of style in one string, but separated with space.
+	 * E.g. .class1 #id .class2 region View ui="some-ui" foo="bar"
 	 */
 	function trimAttr(attrStr){
-		var _attr = '',
-			_classArr = [];
-		//empty
-		if(!attrStr)
+		var _attr = {},
+			_tempArr = [],
+			temp,
+			resultStr = ' ';
+		//empty or long string with spaces
+		if(!attrStr || !attrStr.replace(/^\s+|\s+$/g, ''))
 			return '';
-		//selector style
-		if(/(#|\.)/.test(attrStr) && !/(href)/.test(attrStr)){
-			//remove spaces
-			attrStr = attrStr.replace(/\s/g, '');
-			//id exists
-			if(/#.*?(?=\.|$)/i.test(attrStr)){
-				_attr += attrStr.match(/#.*?(?=\.|$)/i)[0].replace('#', 'id="') + '"';
-				//remove # part in the original string for later use
-				attrStr = attrStr.replace(attrStr.match(/#.*?(?=\.|$)/i)[0], '');
+
+		//not empty string, now takes attrubites separated with space.
+		//Note: need to ignore the spaces inside attributes like, foo="bar1 bar2"
+		_tempArr = attrStr.replace(/^\s+|\s+$/g, '').match(/(?:[^\s"]+|"[^"]*")+/g);
+
+		//loop through all the attributes
+		_tempArr.forEach(function(attr){
+			//start with a '#', means id, only one id exists, replace the old one
+			if(/^#/.test(attr)){
+				_attr.id = attr.slice(1);
 			}
-			if(attrStr){
-				//add classes to attribute string
-				_attr += ' class="';
-				_classArr = attrStr.split('.');
-				$.each(_classArr, function(index, str){
-					if(str)//ignore empty string caused by split
-						_attr += str + ((index === _classArr.length - 1) ? '' : ' ');
-				});
-				_attr +='"';
+			//start with a '.', means class. append
+			else if(/^\./.test(attr)){
+				(_attr.class) ? _attr.class.push(attr.slice(1)) : (_attr.class = [attr.slice(1)]);
 			}
-			return _attr;
-		}
-		//region and view
-		else if(!/(=)/.test(attrStr)){
-			//check whether capitalized(View)
-			if(attrStr.charAt(0) === attrStr.charAt(0).toUpperCase())
-				return 'view="' + attrStr + '" ';
-			else if(attrStr.charAt(0) === attrStr.charAt(0).toLowerCase())
-				return 'region="' + attrStr + '"';
-			else{
-				console.warn('please check your region/view name setting.');
-				return '';
+			//test whether contains "=". if yes, treat as attribute
+			else if(/=/.test(attr)){
+				temp = attr.split('=');
+				//trim double quotes added by split
+				temp[1] = temp[1].replace(/^"|^'|"$|'$/g, '');
+				//check whether it is class
+				//if yes, append
+				if(/^class/.test(attr)){
+					(_attr.class) ? _attr.class.push(temp[1]) : (_attr.class = [temp[1]]);
+				}
+				//if no, rewrite
+				else{
+					_attr[temp[0]] = temp[1];
+				}
+			}
+			//check whether starts with lower case letter, if yes region
+			else if(attr.charAt(0) === attr.charAt(0).toLowerCase()){
+				_attr.region = attr;
+			}
+			//check whether starts with upper case letter, if yes view
+			else if(attr.charAt(0) === attr.charAt(0).toUpperCase()){
+				_attr.view = attr;
+			}
+			//unknow type
+			else
+				console.warn('jQuery::flexlayout::unknow type of attributes');
+		});
+
+		//assemble return string		
+		for(var name in _attr){
+			if(name === 'class'){
+				resultStr += ' ' + name.toString() + '="' + _attr[name].join(' ') + '"';
+			}else{
+				resultStr += ' ' + name.toString() + '="' + _attr[name] + '"';
 			}
 		}
-		//inline style
-		else{
-			return attrStr;
-		}
+
+		//return result string
+		return resultStr;
 	}
 
 	/**

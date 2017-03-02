@@ -9,6 +9,10 @@
                 <strong>After creating a new template, all progress will be lost.</strong>
                 <strong>Do you want to save the progress?</strong>
             </div>
+            <div class="new-warning {{#unless switching}}hidden{{/unless}} text-danger">
+                <strong>After switching the template, all progress here will be lost.</strong>
+                <strong>Do you want to save the progress?</strong>
+            </div>
         	<div class="form form-horizontal">
         		<div editor="name"></div>
                 <div editor="view-name"></div>
@@ -21,7 +25,8 @@
         </div>
         <div class="modal-footer">
             <div class="btn btn-link" data-dismiss="modal" action="close">Close</div>
-            {{#if new-gen}}<div class="btn btn-danger" action="continue">Continue without Saving</div>{{/if}}
+            {{#if new-gen}}<div class="btn btn-danger" action="continue-new">Continue without Saving</div>{{/if}}
+            {{#if switching}}<div class="btn btn-danger" action="continue-switch">Continue without Saving</div>{{/if}}
             <div class="btn btn-success" action="save">Save</div>
         </div>
     </div>

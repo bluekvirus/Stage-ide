@@ -5,7 +5,7 @@
 		attributes: {
 			tabindex: "1" //make this div focusable in order to use keypress event
 		},
-		coop: ['template-added', 'template-reseted', 'generate-overwrite', 'user-reset', 'new-template-confirmed', 'save-region-view-config'],
+		coop: ['template-added', 'template-reseted', 'generate-overwrite', 'user-reset', 'new-template-confirmed', 'save-region-view-config', 'continue-template-switch', 'save-template-switch-confirmed'],
 		initialize: function(){
 			//indicate whether click event will be triggered or not
 			this.clickable = true;
@@ -19,8 +19,6 @@
 			this.viewMenu = false;
 			//meta to store currently focusing on which region
 			this.currentRegion = '';
-			//meta for region view table
-			this.regionView = {};
 		},
 		onTemplateAdded: function(name){
 			this.addTemplateOnMenu(name, true);
@@ -48,11 +46,15 @@
 
 			//show all stored templates
 			_.each(app.store.getAll(), function(item, key){
-				if(key !== 'endPoints' && key !== 'horizontal-line' && key !== 'vertical-line' && key !== 'current' && key !== '__opened__'){//only focus on stored object
+				if(key !== 'endPoints' && key !== 'horizontal-line' && key !== 'vertical-line' && key !== 'current' && key !== '__opened__' && key !== 'regionView'){//only focus on stored object
 					
 					//actived one should be highlighed
 					if(key === app.store.get('current')){
 						that.addTemplateOnMenu(key, true);
+						if(app._global.regionView){
+							that.loadTemplate(false,  app.store.get('current'));
+						}
+
 					}else{
 						that.addTemplateOnMenu(key);
 					}
@@ -134,12 +136,31 @@
 
 			});
 
+			//click side menu close all other menus
+			this.$el.find('.side-menu').on('click', app.throttle(function(e){
+				e.preventDefault();
+				e.stopPropagation();
+				//view menu
+				that.$el.find('.view-menu').addClass('hidden');
+
+				//arrow
+				that.$el.find('.end-point-menu').addClass('hidden');
+			}));
+
 			this.$el.on('click', function(e){
+				var $target = $(e.target);
+				app.debug('clicking target...', $target);
+				//side menu classes
+				var stopPropagationClasses = ['side-menu-item', 'side-menu-templates-holder'],
+					sideFlag = false;
+				_.each(stopPropagationClasses, function(classname){
+					if($target.hasClass(classname)) sideFlag = true;
+				});
+				if(sideFlag) return;
 				//check whether side menu is active, if yes close it
 				if(that.$el.find('.side-menu-trigger').hasClass('active'))
 					that.toggleSideMenu(that.$el.find('.side-menu-trigger'));
 
-				var $target = $(e.target);
 				//if end point menu is being shown, close menu ONLY and no further operations
 				var Menu = that.getViewIn('arrows');
 				if(Menu.shown){
@@ -236,17 +257,6 @@
 				var temp = app.store.get('__opened__');
 				app.store.set('__opened__', !temp);
 			}));*/
-
-			//click side menu close all other menus
-			this.$el.find('.side-menu').on('click', app.throttle(function(e){
-				e.preventDefault();
-				e.stopPropagation();
-				//view menu
-				that.$el.find('.view-menu').addClass('hidden');
-
-				//arrow
-				that.$el.find('.end-point-menu').addClass('hidden');
-			}));
 
 			//view input change need to de-highlight or highlight view menu list item
 			this.$el.find('#view-menu-input').on('keyup', _.debounce(function(e){
@@ -346,53 +356,15 @@
 				});
 			},
 			'load-template': function($self){
-				var name = $self.attr('template-name'),
-					temp = app.store.get(name),
-					oldName = this.$el.find('.side-menu-list .current-name').text(),
-					old = {};
-
-				//save old template, only if the current name is not untitled
-				if(oldName !== 'untitled'){
-					old.endPoints = app._global.endPoints;
-					old['horizontal-line'] = app._global['horizontal-line'];
-					old['vertical-line'] = app._global['vertical-line'];
-					app.store.set(oldName, old);
-				}
-
-				//reset app._global object
-				app._global.endPoints = temp.endPoints;
-				app._global['horizontal-line'] = temp['horizontal-line'];
-				app._global['vertical-line'] = temp['vertical-line'];
-
-				//reset local stored object for current template
-				app.store.set('endPoints', temp.endPoints);
-				app.store.set('horizontal-line', temp['horizontal-line']);
-				app.store.set('vertical-line', temp['vertical-line']);
-
-				//refresh
-				this.show('guide', 'Create.Guide');
-				//layout svg
-				this.show('layout', 'Create.Layout');
-				//menu arrows
-				this.show('arrows', 'Create.Arrows');
-
-				//highlight currently actived template
-				this.$el.find('.side-menu-templates-holder .side-menu-item-text').removeClass('active');
-				$self.addClass('active');
-				//change current loaded template name
-				this.$el.find('.side-menu-list .current-name').text(name);
-
-				//for region and views, if locked generate view directly
-				// this.regionView = temp.regionView;
-				// this.lockLayout(this.$el.find('.lock-button'));
-				// this.generateLayout();
-
-				//flash text
-				this.flashCurrent();
-				//set current
-				app.store.set('current', name);
-
-				app.notify('Loaded!', 'Template <strong>' + name + '</strong> has been loaded.', 'ok', {icon: 'fa fa-fort-awesome'});
+				var Save = app.get('Create.Save');
+				(new Save({
+					data: {
+						'switching': $self,
+					}
+				})).overlay({
+					effect: false,
+					class: 'save-overlay create-overlay',
+				});
 			},
 			'delete-template': function($self){
 				var Delete = app.get('Create.Delete');
@@ -449,13 +421,82 @@
 					//hide region-cover
 					this.adjustRegionCover(false);
 					//add region to list
-					this.regionView[this.currentRegion] = name;
+					app._global.regionView[this.currentRegion] = name;
+					//sync it in local storage
+					app.store.remove('regionView');
+					app.store.set('regionView', $.extend(true, {}, app._global.regionView));
 				}else{
 					//no name actived, raise notification
 					app.notify('No view selected!', 'You have not selected any view. Please selecte one.', 'error', {icon: 'fa fa-reddit-alien'});
 				}
 
 			}
+		},
+		loadTemplate: function($button, initial){
+			//reset this.generated
+			this.generated = false;
+
+			var name = initial || $button.attr('template-name'),
+				temp = app.store.get(name),
+				oldName = this.$el.find('.side-menu-list .current-name').text(),
+				old = {};
+
+			//save old template, only if the current name is not untitled
+			if(oldName !== 'untitled'){
+				old.endPoints = app._global.endPoints;
+				old['horizontal-line'] = app._global['horizontal-line'];
+				old['vertical-line'] = app._global['vertical-line'];
+				//store region view
+				old.regionView = app._global.regionView;
+				app.store.set(oldName, old);
+			}
+
+			//reset app._global object
+			app._global.endPoints = temp.endPoints;
+			app._global['horizontal-line'] = temp['horizontal-line'];
+			app._global['vertical-line'] = temp['vertical-line'];
+			app._global.regionView = temp.regionView;
+
+			//reset local stored object for current template
+			app.store.set('endPoints', temp.endPoints);
+			app.store.set('horizontal-line', temp['horizontal-line']);
+			app.store.set('vertical-line', temp['vertical-line']);
+			app.store.set('regionView', temp.regionView);
+
+			//refresh
+			this.show('guide', 'Create.Guide');
+			//layout svg
+			this.show('layout', 'Create.Layout');
+			//menu arrows
+			this.show('arrows', 'Create.Arrows');
+
+			//highlight currently actived template
+			if($button){
+				this.$el.find('.side-menu-templates-holder .side-menu-item-text').removeClass('active');
+				$button.addClass('active');
+			}
+			//change current loaded template name
+			this.$el.find('.side-menu-list .current-name').text(name);
+
+			//for region and views, if locked generate view directly
+			if(app._global.regionView){
+				this.generateLayout();
+				if(!this.locked)
+					this.lockLayout(this.$el.find('.lock-button'));
+			}else{
+				//make sure unlock and meshed
+				if(this.locked)
+					this.lockLayout(this.$el.find('.lock-button'), true);
+				if(!this.meshed)
+					this.meshLayout(this.$el.find('.hide-button'));
+			}
+
+			//flash text
+			this.flashCurrent();
+			//set current
+			app.store.set('current', name);
+
+			app.notify('Loaded!', 'Template <strong>' + name + '</strong> has been loaded.', 'ok', {icon: 'fa fa-fort-awesome'});
 		},
 		newTemplate: function(){
 			//reset locally stored current
@@ -586,7 +627,8 @@
 			app._global.endPoints = undefined;
 			app._global['horizontal-line'] = undefined;
 			app._global['vertical-line'] = undefined;
-
+			app._global.regionView = undefined;
+			
 			this.onLayoutResetted(true);
 
 			//reset lock
@@ -610,9 +652,9 @@
 		},
 		lockLayout: function($lockButton, unlock){
 			//check if already generated layout
-			if(this.generated){
+			if(this.generated || unlock){
 				//check if try to unlock or lock
-				if(this.locked){//try to unlock
+				if(this.locked || unlock){//try to unlock
 					//if not meshed, make it meshed
 					if(!this.meshed)
 						this.meshLayout(this.$el.find('.operations-item .hide-button'), true);
@@ -626,6 +668,11 @@
 					this.$el.find('.region-generate-view .region.active').removeClass('active');
 					//hide region-cover
 					this.adjustRegionCover(false);
+
+					//for template switching
+					if(unlock){
+						this.$el.find('.locker').addClass('hidden');
+					}
 
 				}else{//try to lock
 					//if meshed make it unmeshed
@@ -717,8 +764,11 @@
 			//if already locked return
 			if(this.locked) return;
 			//if not locked, lock the view
-			else
+			else{
+				//object to store region-view configuration globally
+				app._global.regionView = app._global.regionView || {};
 				this.lockLayout(this.$el.find('.operations-item.lock-button'));
+			}
 		},
 		generateUnmesh: function(){
 			//check whether view is already unmeshed
@@ -856,14 +906,14 @@
 					if(!adjusting){
 						that.generateLock();
 						that.generateUnmesh();	
-					}else{
-						//if calls from adjusting layout, then re-render views
-						if(_.keys(that.regionView).length){
-							_.each(that.regionView, function(v, r){
-								//load view into the region
-								that.getViewIn('generate-view').show(r, v);
-							});
-						}
+					}
+
+					//re-render views
+					if(_.keys(app._global.regionView).length){
+						_.each(app._global.regionView, function(v, r){
+							//load view into the region
+							that.getViewIn('generate-view').show(r, v);
+						});
 					}
 				})
 				.fail(function(error){
@@ -919,7 +969,7 @@
 			if(this.getViewIn('generate-view')) this.getViewIn('generate-view').close();
 
 			//reset regionView table
-			this.regionView = {};
+			app._global.regionView = undefined;
 
 			//reset locker index
 			this.$el.find('.locker').addClass('hidden').css(({'z-index': 3}));
@@ -940,10 +990,24 @@
 		onSaveRegionViewConfig: function(name){
 			//store region and view relationsip
 			var temp = app.store.get(name);
-			temp.regionView = this.regionView;
+			temp.regionView = app._global.regionView;
+			var newObj = $.extend(true, {}, temp); //deep copy
 			app.store.remove(name);
-			app.store.set(name, temp);
+			app.store.set(name, newObj);
 		},
+		onContinueTemplateSwitch: function($button){
+			this.loadTemplate($button);
+		},
+		onSaveTemplateSwitchConfirmed: function(meta){
+			//save regionView to local storage
+			var temp = app.store.get(meta.name);
+			temp.regionView = app._global.regionView;
+			var newObj = $.extend(true, {}, temp); //deep copy
+			app.store.remove(name);
+			app.store.set(name, newObj);
+			//load template
+			this.loadTemplate(meta.$button);
+		}
 	});
 
 	function checkContained(arr, obj, key){
