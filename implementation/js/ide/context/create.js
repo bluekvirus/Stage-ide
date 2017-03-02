@@ -61,6 +61,11 @@
 				}
 			});
 			
+			//load locally stored template if there is no current
+			if(!app.store.get('current') && app._global.regionView){
+				this.generateLayout();
+			}
+
 			//focus on this.$el to trigger events
 			this.$el.focus();
 
@@ -151,7 +156,7 @@
 				var $target = $(e.target);
 				app.debug('clicking target...', $target);
 				//side menu classes
-				var stopPropagationClasses = ['side-menu-item', 'side-menu-templates-holder'],
+				var stopPropagationClasses = ['side-menu-item', 'side-menu-templates-holder', 'tabs'],
 					sideFlag = false;
 				_.each(stopPropagationClasses, function(classname){
 					if($target.hasClass(classname)) sideFlag = true;
@@ -169,7 +174,7 @@
 				}
 
 				//if view menu shown, return
-				if(_.string.include($target.attr('class'), 'view-menu') || $target.is('input')){
+				if(_.string.include($target.attr('class'), 'view-menu') || $target.is('input') || $target.is('textarea')){
 					return;
 				}
 
@@ -189,7 +194,7 @@
 					that.currentRegion = $target.attr('region');
 
 					//clean up input text
-					that.$el.find('.view-menu #view-menu-input').val('');
+					that.$el.find('.view-menu #view-search').val('');
 					
 					//hightlight clicked region
 					//remove highlight
@@ -237,29 +242,8 @@
 					app.coop('guideline-click');
 			});
 
-			//click event to show menu
-			/*this.$el.find('.side-menu-trigger').on('click', app.throttle(function(e){
-				//prevent default events
-				e.preventDefault();
-
-				var $this = $(this);
-				//flash current
-				if(!$this.hasClass('active'))
-					that.flashCurrent();
-				//
-				$this.toggleClass('active');
-				that.$el.find('.side-menu-list').toggleClass('active');
-
-				//toggle icon
-				$this.find('.fa').toggleClass('hidden');
-
-				//flip side menu status in the local storage
-				var temp = app.store.get('__opened__');
-				app.store.set('__opened__', !temp);
-			}));*/
-
 			//view input change need to de-highlight or highlight view menu list item
-			this.$el.find('#view-menu-input').on('keyup', _.debounce(function(e){
+			this.$el.find('#view-search').on('keyup', _.debounce(function(e){
 				var $this = $(this),
 					current = $this.val(),
 					flag = false;
@@ -309,8 +293,53 @@
             this.$el.find('.side-menu-list .current-name-holder').bind('animationend', function(){
                 $(this).removeClass('flash');
             });
+
+            //block hover on view menu to propagate
+            this.$el.find('.view-menu')
+            .on('mousemove', function(e){
+            	e.preventDefault();
+            	e.stopPropagation();
+            })
+            //block click event on view menu to propagate
+            .on('click', function(e){
+            	//e.stopPropagation();
+            });
+
+            //block hover on side menu to propagate
+            this.$el.find('.side-menu').on('mousemove', function(e){
+            	e.preventDefault();
+            	e.stopPropagation();
+            });
+
+            
+            
 		},
 		actions: {
+			'data-fetch': function(){
+				var that = this;
+				//remote not enabled
+				if(this.$el.find('#data-url').prop('disabled')){
+					app.notify('Remote not enabled!', 'You must enable remote to fetch.', 'error', {icon: 'fa fa-reddit-alien'});
+				}else{
+					var url = this.$el.find('#data-url').val(),
+						dataStr = '';
+					if(url)
+						app.remote(url).done(function(data){
+							dataStr = JSON.stringify(data);
+							that.$el.find('#data-editor').val(dataStr);
+						});
+				}
+			},
+			'data-remote': function($self){
+				$self.toggleClass('active');
+				//check if active, if yes enable input, else disable input
+				if($self.hasClass('active')){
+					this.$el.find('#data-url').prop('disabled', false);
+				}
+				else{
+					this.$el.find('#data-url').prop('disabled', true);	
+				}
+			},
 			'side-menu': function($self){
 				this.toggleSideMenu($self);
 			},
@@ -405,32 +434,78 @@
 				this.adjustRegionCover(false);
 			},
 			'view-add': function(){
-				//check which one is active
-				var name = this.$el.find('.view-menu-list .view-menu-list-item.active').text();
+				//check html is active or view is active
+				var method = this.$el.find('.tabs .tab.active').attr('tab'),
+					data = this.$el.find('#data-editor').val(),
+					content = '',
+					error = false;
 
-				//check whether there is an active name
-				if(name){
-					//show view
-					this.getViewIn('generate-view').show(this.currentRegion, name);
-					//hide menu
-					this.$el.find('.view-menu').addClass('hidden');
-					//remove currently actived class
-					this.$el.find('.view-menu-list .view-menu-list-item').removeClass('active');
-					//remove active class on region
-					this.$el.find('.region-generate-view .region.active').removeClass('active');
-					//hide region-cover
-					this.adjustRegionCover(false);
-					//add region to list
-					app._global.regionView[this.currentRegion] = name;
-					//sync it in local storage
-					app.store.remove('regionView');
-					app.store.set('regionView', $.extend(true, {}, app._global.regionView));
-				}else{
-					//no name actived, raise notification
-					app.notify('No view selected!', 'You have not selected any view. Please selecte one.', 'error', {icon: 'fa fa-reddit-alien'});
+				//check if dataStr exists
+				if(data){
+					try {
+				        data = JSON.parse(data);
+				    } catch (e) {
+				    	error = true;
+				        console.warn('IDE::invalid data.');
+				    }
 				}
 
-			}
+				if(method === 'data'){
+					app.notify('No insert method selected!', 'Please select view or HTML tab to compensate the data.', 'error', {icon: 'fa fa-reddit-alien'});
+					return;
+				}
+				//check which one is active
+				else if(method === 'html'){
+					content = this.$el.find('#html-editor').val();
+				}
+				else if(method === 'view'){
+					content = this.$el.find('.view-menu-list .view-menu-list-item.active').text();
+					//check whether there is an active name
+					if(!content){
+						//no name actived, raise notification
+						app.notify('No view selected!', 'You have not selected any view. Please selecte one.', 'error', {icon: 'fa fa-reddit-alien'});
+						return;
+					}
+				}
+
+				//for future
+				//else if....
+				if(data && !error)
+					this.getViewIn('generate-view').spray(this.$el.find('[region="' + this.currentRegion + '"]'), content, {
+						data: data
+					});
+				else
+					this.getViewIn('generate-view').spray(this.$el.find('[region="' + this.currentRegion + '"]'), content);
+				//hide menu
+				this.$el.find('.view-menu').addClass('hidden');
+				//remove currently actived class
+				this.$el.find('.view-menu-list .view-menu-list-item').removeClass('active');
+				//remove active class on region
+				this.$el.find('.region-generate-view .region.active').removeClass('active');
+				//hide region-cover
+				this.adjustRegionCover(false);
+				//add region to list
+				app._global.regionView[this.currentRegion] = {
+					view: content,
+					data: (function(){
+						return (data && !error) ? data : {};
+					})(),
+				};
+				//sync it in local storage
+				app.store.remove('regionView');
+				app.store.set('regionView', $.extend(true, {}, app._global.regionView));
+
+			},
+			'active-menu-tab': function($self){
+				var name = $self.attr('tab');
+				//add active class on tabs
+				$self.siblings().removeClass('active');
+				$self.addClass('active');
+				//hide others
+				this.$el.find('.view-menu-middle-holder .tab-content').addClass('hidden');
+				//show actived
+				this.$el.find('.view-menu-middle-holder .tab-content[content="' + name + '"]').removeClass('hidden');
+			},
 		},
 		loadTemplate: function($button, initial){
 			//reset this.generated
@@ -622,6 +697,7 @@
 			app.store.remove('endPoints');
 			app.store.remove('horizontal-line');
 			app.store.remove('vertical-line');
+			app.store.remove('regionView');
 			//app.store.remove('current');
 			//reset global objects
 			app._global.endPoints = undefined;
@@ -760,15 +836,16 @@
 			this.meshed = !this.meshed;
 		},
 		generateLock: function(){
+			//object to store region-view configuration globally
+			app._global.regionView = app._global.regionView || {};
+			//sync with local storage
+			app.store.set('regionView', $.extend(true, {}, app._global.regionView));
 			//check whether view is already locked
 			//if already locked return
 			if(this.locked) return;
 			//if not locked, lock the view
-			else{
-				//object to store region-view configuration globally
-				app._global.regionView = app._global.regionView || {};
+			else
 				this.lockLayout(this.$el.find('.operations-item.lock-button'));
-			}
 		},
 		generateUnmesh: function(){
 			//check whether view is already unmeshed
@@ -910,9 +987,11 @@
 
 					//re-render views
 					if(_.keys(app._global.regionView).length){
-						_.each(app._global.regionView, function(v, r){
+						_.each(app._global.regionView, function(obj, r){
 							//load view into the region
-							that.getViewIn('generate-view').show(r, v);
+							that.getViewIn('generate-view').spray(that.$el.find('[region="' + r + '"]'), obj.view, {
+								data: obj.data
+							});
 						});
 					}
 				})
