@@ -1,5 +1,9 @@
 /**
+<<<<<<< HEAD
  * flexLayout v0.3.2, http://TBD
+=======
+ * flexLayout v0.3.0, http://TBD
+>>>>>>> upstream/master
  * ===================================
  * Highly customizable easy to use, light weight, layout/split jQuery plugin
  * 
@@ -111,6 +115,7 @@
 				_attribute = trimAttr(tempConfig[1]),
 				//added for insert html string
 				_html = $.isArray(config) ? '' : ((tempConfig[2]) ? tempConfig[2].replace(/^"|^'|"$|'$/g, '') : ''),
+
 				//make block object
 				_$block = $('<div ' + _style + _attribute + '>' + _html + '</div>'),
 				//save a copy of arrays, it might be multiple same level of blocks; therefore do not 'shift' on original array
