@@ -14,7 +14,7 @@
 		curtains: {},
 
 		//Note: Always set navRegion if using app template here, unless you've merged it(the tpl) with index.html;
-		defaultContext: 'Create',
+		defaultContext: '_IDE/Create',
 		viewSrcs: 'js/ide', //set this to a folder path to enable view dynamic loading. 
 		//---------------------------------------------------------------------------------------------
 		fullScreen: false, //this will put <body> to be full screen sized (window.innerHeight).
@@ -26,20 +26,44 @@
 		timeout: 5 * 60 * 1000 //general communication timeout (ms), e.g when using app.remote()
 	});
 
+	//_IDE view
+	app.view('_IDE', {
+		attributes: {
+			style: 'height:100%;width:100%;'
+		},
+		template: '<div region="ide-content" style="height:100%;width:100%;">1</div>',
+		navRegion: 'ide-content'
+	});
+
 	///////////initializers/////////// - [optional]
 	app.addInitializer(function(){
 		//reload previously stored configuration
 		
 		var endPoints, hlines, vlines, temp, regionView;
 
-
 		if(app.store.get('current')){//has currently actived template
 
+			//if has current, compare whether temporary is same as current,
+			//if yes, old logic show current
+			//if not, show the temporary
+			
+			var cached = {};
+			cached.endPoints = app.store.get('endPoints');
+			cached['horizontal-line'] = app.store.get('horizontal-line');
+			cached['vertical-line'] = app.store.get('vertical-line');
+			cached.regionView = app.store.get('regionView');
+
 			temp = app.store.get(app.store.get('current'));
-			endPoints = temp.endPoints;
-			hlines = temp['horizontal-line'];
-			vlines = temp['vertical-line'];
-			regionView = temp.regionView;
+			
+			//deep compare two objects
+			if(!_.isEqual(cached, temp)){
+				app.store.remove('current'); //not equal remove current
+			}
+
+			endPoints = cached.endPoints;
+			hlines = cached['horizontal-line'];
+			vlines = cached['vertical-line'];
+			regionView = cached.regionView;
 
 		}else{//no currently actived template
 			
@@ -57,7 +81,8 @@
 			app._global.regionView = regionView;
 		}
 
-		console.log(app.store.get('regionView'), app._global && app._global.regionView);
+		app.debug('cached..', endPoints, hlines, vlines);
+		app.debug('regionView::store, _global', app.store.get('regionView'), app._global && app._global.regionView);
 	});
 
 	app.addInitializer(function(){

@@ -32,8 +32,22 @@
 				<div class="pull-left btn-holder">
 					<div class="btn btn-block btn-link" action="data-fetch"><i class="fa fa-refresh"></i> <strong>Fetch</strong></div>
 				</div>
-				<div class="pull-left btn-holder">
-					<div class="btn btn-block btn-info" action="data-remote"><strong>Remote</strong></div>
+				<div class="pull-left">
+					<!-- <div class="btn btn-block btn-info" action="data-remote"><strong>Remote</strong></div> -->
+					<ul id="remote-switch" class="pull-right">
+						<li>
+							<label class="switch">
+								<input type="checkbox">
+								<div class="slider">
+									<span class="gui-text">LOCAL</span
+									><span class="cli-text">REMOTE</span>
+									<div class="inner-slider">
+										<div class="fill-up"></div>
+									</div>
+								</div>
+							</label>
+						</li>
+					</ul>
 				</div>
 			</div>
 			<div class="data-editor-holder clearfix">

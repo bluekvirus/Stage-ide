@@ -21,7 +21,7 @@ body,
 .region-contexts {
 	height: 100%;
 	//------------------------ styling for create context ------------------------//
-	.context-create {
+	.regional-create {
 		height: 100%;
 		width: 100%;
 		background-color: transparent;
@@ -174,7 +174,7 @@ body,
 						height: 50px;
 						position: relative;
 						.data-url-holder {
-							width: 70%;
+							width: 60%;
 							height: 100%;
 							input[type="text"] {
 								width: 100%;
@@ -182,8 +182,8 @@ body,
 							}
 						}
 						.btn-holder {
-							width: 15%;
-							padding: 1px 0 0 @grid-gutter-width / 2;
+							//width: 18%;
+							padding: 0 @grid-gutter-width / 2;
 							.btn-info {
 								color: @gray-lighter;
 								&.active {
@@ -191,6 +191,114 @@ body,
 								}
 							}
 						}
+						#remote-switch{
+							list-style-type: none;
+							padding-left: 0;
+							margin-bottom: 0;
+							li{
+								//padding-top: 0.5em;
+								.switch {
+									position: relative;
+									display: inline-block;
+									width: 140px;
+									height: 35px;
+									padding-bottom: 2px;
+								}
+								/* Hide default HTML checkbox */
+								.switch input {
+								    display: none;
+								}
+
+								/* The slider */
+								.slider {
+								    position: absolute;
+								    cursor: pointer;
+								    top: 0;
+								    left: 0;
+								    right: 0;
+								    bottom: 0;
+								    background-color: #fff;
+								    border: 1px solid darken(@border, 10%);
+								    -webkit-transition: .5s;
+								    transition: .5s;
+								    line-height: 23px;
+								    .cli-text,
+								    .gui-text{
+								    	position: relative;
+								    	display: inline-block;
+								    	width: 50%;
+								    	text-align: center;
+								    	font-size: 0.8em;
+								    	font-weight: 600;
+								    	line-height: 35px;
+								    	z-index: 3;
+								    }
+								    .gui-text{
+								    	color: #fff;
+								    	padding-left: 2px;
+								    }
+								    .cli-text{
+								    	color: @gray-light;
+								    	padding-right: 2px;
+								    }
+								    .inner-slider{
+									    position: absolute;
+									    width: 70px;
+										bottom: 2px;
+									    left: 2px;
+									    top: 2px;
+									    border: 1px solid @brand-primary;
+									    -webkit-transition: .5s;
+									    transition: .5s;
+										z-index: 1;
+										.fill-up{
+											position: absolute;
+											background-color: @brand-primary;
+											left: 1px;
+											top: 1px;//0.9px for fire-fox bug, 1px causes bug
+											right: 1px;
+											bottom: 1px;
+											z-index: 2;
+										}
+										@-moz-document url-prefix() {
+										    .fill-up{
+										        top: 0.9px !important;//0.9px for fire-fox bug, 1px causes bug
+										    }
+										}
+									}
+								}
+								input:checked + .slider {
+								    background-color: #fff;
+								    .gui-text{
+								    	color: @gray-light;
+								    }
+								    .cli-text{
+								    	color: #fff;
+								    }
+								}
+								input:focus + .slider {
+								    //box-shadow: 0 0 1px @brand-info;
+								}
+								input:checked + .slider > .inner-slider {
+								    transform: translateX(64px);
+								}
+
+								input:not(:checked) + .slider > .inner-slider {
+									border: 1px solid @gray-light;
+									.fill-up{
+										background-color: @gray-light;
+									}
+								}
+
+								/* Rounded sliders */
+								.slider.round {
+								    border-radius: 34px;
+								}
+								.slider.round:before {
+								    border-radius: 50%;
+								}
+							}
+						}	
 					}
 					.data-editor-holder {
 						height: 400px;
