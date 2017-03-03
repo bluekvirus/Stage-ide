@@ -61,14 +61,17 @@ if(config.src.templates){
 	if(fs.existsSync(tplBase)){
 		var tpls = wrench.readdirSyncRecursive(tplBase);
 		tpls = _.reject(tpls, function(name){
-			return !name.match(/\.html$/);
+			return !name.match(/(\.html|\.md)$/);
 		});
 		var all = {};
 		_.each(tpls, function(name){
 			var tpl = fs.readFileSync(path.join(tplBase, name), {encoding: 'utf8'});
 			name = '@' + name.split(path.sep).join('/');//tag tpl name as @remote tpl, normalize file path from different OS
 			console.log('[template]'.green, name, '+'.green);
-			all[name] = tpl.replace(/[\n\t]/g, '');
+			if(_.string.endsWith(name, '.html'))
+				all[name] = tpl.replace(/[\n\t]/g, '');
+			else
+				all[name] = tpl;
 		});
 		var allJSON = path.join(tplBase, 'all.json');
 		fs.outputJSONSync(allJSON, all);

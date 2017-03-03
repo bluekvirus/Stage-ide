@@ -1,7 +1,6 @@
-//moved to view/create.js
-/*;(function(app){
+;(function(app){
 
-	app.context('Create', {
+	app.view('Create', {
 		template: '@context/create.html',
 		attributes: {
 			tabindex: "1" //make this div focusable in order to use keypress event
@@ -1171,4 +1170,4 @@
 		return flag;
 	}
 
-})(Application);*/
+})(Application);
