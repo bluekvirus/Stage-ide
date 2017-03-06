@@ -109,15 +109,12 @@
 					app.coop('save-region-view-config', name);
 					if(this.get('new-gen'))
 						app.coop('new-template-confirmed', name);
-<<<<<<< HEAD
 
 					if(this.get('switching'))
 						app.coop('save-template-switch-confirmed', {
 							name: name,
 							$button: this.get('switching')
 						});
-=======
->>>>>>> upstream/master
 					
 					app.notify('Saved!', 'Template <strong>' + name + '</strong> has been saved.', 'ok', {icon: 'fa fa-fort-awesome'});
 					this.close();

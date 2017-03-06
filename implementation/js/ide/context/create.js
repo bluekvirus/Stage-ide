@@ -1,4 +1,18 @@
-//moved to view/create.js
+//moved to view/create.js for use _IDE/Crete navigation path
+
+//Clean the code: 
+// 1). Move side menu to a separated view;
+// 2). Move view-adding menu to a separated view;
+// 3). Reorder/Cleanup Create context, make logic clearer and easy to maintain.
+// 4). Make all the saving/loading function with dedicated names, so that it can be replaced easier in the future linked to backend.
+// 5). Cleanup the loading logical on first time loading/refreshing page.
+//
+//TODO:
+// 1). Saving as a view mechanism;
+// 2). Editor and SVG view.
+// 3). Make testarea prettier with highlight.js?
+
+
 // ;(function(app){
 
 // 	app.context('Create', {
