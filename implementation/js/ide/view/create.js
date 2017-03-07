@@ -502,72 +502,6 @@
 			$lockButton.find('.unlock').toggleClass('hidden');
 			this.locked = !this.locked;
 		},
-		meshLayout: function($meshButton, callFromLock){
-			//check whether locked and generated, if yes tell user must unlock first, return
-			//ignore this branch, if this method is called directly from lockLayout function
-			if(!callFromLock && this.generated && !this.meshed && this.locked){
-				app.notify('Error!', 'You have generated a layout. You need to unlock to see all the grids.', 'error', {icon: 'fa fa-reddit-alien'});
-				return;
-			}
-
-			//appereance
-			$meshButton.toggleClass('active');
-			$meshButton.find('.hide-point').toggleClass('hidden');
-			$meshButton.find('.show-point').toggleClass('hidden');
-
-			//real stuff
-			if(this.meshed){
-				//outer circle
-				_.each($('.end-point'), function(el){
-					var $el = $(el);
-					//
-					var classes = $el.attr('class');
-					$el.attr('class', classes + ' hidden');
-				});
-
-				//inner circle
-				_.each($('.end-point-inner'), function(el){
-					var $el = $(el);
-					//
-					var classes = $el.attr('class');
-					$el.attr('class', classes + ' hidden');
-				});
-
-				//lines
-				_.each($('.layout-line'), function(el){
-					var $el = $(el);
-					//
-					var classes = $el.attr('class');
-					$el.attr('class', classes + ' hidden');
-				});
-
-			}else{
-				//outer circle
-				_.each($('.end-point'), function(el){
-					var $el = $(el);
-					//
-					var classes = $el.attr('class');
-					$el.attr('class', classes.replace('hidden', ''));
-				});
-
-				//inner circle
-				_.each($('.end-point-inner'), function(el){
-					var $el = $(el);
-					//
-					var classes = $el.attr('class');
-					$el.attr('class', classes.replace('hidden', ''));
-				});
-
-				//lines
-				_.each($('.layout-line'), function(el){
-					var $el = $(el);
-					//
-					var classes = $el.attr('class');
-					$el.attr('class', classes.replace('hidden', ''));
-				});
-			}
-			this.meshed = !this.meshed;
-		},
 		generateLock: function(){
 			//object to store region-view configuration globally
 			app._global.regionView = app._global.regionView || {};
@@ -862,6 +796,20 @@
 			//hide arrow
 			this.$el.find('.end-point-menu').addClass('hidden');
 		},
+		onSideMenuHover: function(){
+			//hide guide lines
+			//re-set guideline
+			app.coop('guideline-move',{
+				x: 0,
+				y: 0
+			});
+		},
+		onLayoutLocked: function(locked){
+			this.locked = locked;
+		},
+		onLayoutMeshed: function(meshed){
+			this.meshed = meshed;
+		}
 	});
 
 	function checkContained(arr, obj, key){
