@@ -67,7 +67,7 @@ program
 		return v.split(',').map(function(p){
 			return _.string.trim(p);
 		});
-	}, ['bootstrap', 'open-sans-fontface', 'fontawesome', 'roboto-fontface'])
+	}, ['bootstrap', 'open-sans-fontface', 'fontawesome'])
 	.option('-S --sprites [folder,folder,...]', '/img/? folders to include in the sprite.png, default to icons, logo, pics', function(v){
 		return v.split(',').map(function(f){
 			return _.string.trim(f);

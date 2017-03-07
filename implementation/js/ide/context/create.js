@@ -1,4 +1,4 @@
-//moved to view/create.js for use _IDE/Crete navigation path
+//moved to view/create.js for using _IDE/Crete navigation path
 
 //Clean the code: 
 // 1). Move side menu to a separated view;
