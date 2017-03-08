@@ -10,7 +10,7 @@
 
 		template: '@view/create/side-menu.html',
 		//data: 'url', {} or [],
-		//coop: ['e', 'e'],
+		coop: [],
 		//[editors]: {...},
 		
 		initialize: function(){},
@@ -45,45 +45,13 @@
 		},
 		actions: {
 			lock: function($self){
-				//check whether already generated layout, if not gnerate, if yes just lock
-				// if(this.generated)
-				// 	this.lockLayout($self);
-				// else
-				// 	this.generateLayout();
-
-				//check whether generated layout
-				//If not, lock layout, unmesh and generate.
-				//If yes, unlock layout, mesh.
-				//Both of the circumstances, needs to notify create view for generate status change.
-				
-				//use app._global.regionView to check whether generated.
-				//use the active class to check whether locked.
-				var locked = $self.hasClass('active'),
-					generated = !!app._global.regionView; //? do I really need this information?
-
-				this.lockLayout($self, locked);
-
+				this.lockLayout();
+			},
+			'mesh': function($self){
+				this.meshLayout($self.hasClass('active'));
 			},
 			generate: function(){//need to align lines, ignore margin of errors
-				this.generateLayout(false, true);
-				// var that = this,
-				// 	flag = false;
-
-				//check whether there are any view has been inserted
-				/*if(this.getViewIn('generate-view'))
-					flag = true;
-					// _.each(_.keys(this.getViewIn('generate-view').regions), function(regionName){
-					// 	if(that.getViewIn('generate-view').getViewIn(regionName))
-					// 		flag = true;
-					// });
-
-				if(flag)
-					(new (app.get('Create.GenerateConfirm'))()).overlay({
-						effect: false,
-						class: 'generate-confirm-overlay create-overlay danger-title'
-					});
-				else
-					this.generateLayout();*/
+				this.coop('overlay-generate');
 			},
 			reset: function(){
 				(new (app.get('Create.ResetConfirm'))()).overlay({
@@ -132,9 +100,6 @@
 					class: 'save-overlay create-overlay',
 				});
 			},
-			'hide-end-points': function($self){
-				this.meshLayout($self.hasClass('active'));
-			},
 		},
 		lockLayout: function(){
 			var $lockButton = this.$el.find('.operations-item .lock-button'),
@@ -142,12 +107,6 @@
 
 			//call meshLayout before lockButton status chagned
 			this.meshLayout(true);
-
-			if(locked){//unlock and mesh
-
-			}else{//lock and unmesh
-				//need to generate layout here
-			}
 
 			//toggle ui appearence
 			$lockButton.toggleClass('active');
@@ -190,7 +149,9 @@
 			
 			//echo coop event
 			this.coop('layout-meshed', meshed = $meshButton.hasClass('active'));
-		}
+		},
+		//
+		
 	});
 
 })(Application);

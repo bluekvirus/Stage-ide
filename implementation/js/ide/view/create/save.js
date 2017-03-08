@@ -58,6 +58,7 @@
 				this.saveTemplate();
 			},
 			overwrite: function(){
+				//get globally stored values
 				var temp = {}, name = this.getEditor('name').getVal();
 				temp.endPoints = app._global.endPoints;
 				temp['horizontal-line'] = app._global['horizontal-line'];
