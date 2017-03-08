@@ -5,9 +5,7 @@
 		attributes: {
 			tabindex: "1" //make this div focusable in order to use keypress event
 		},
-		coop: ['template-added', 'template-reseted', 'generate-overwrite', 'user-reset', 
-				'new-template-confirmed', 'save-region-view-config', 'continue-template-switch', 'save-template-switch-confirmed'
-				],
+		coop: ['active-template-deleted', 'user-reset', 'continue-template-switch', 'template-saved'],
 		initialize: function(){
 			//indicate whether click event will be triggered or not
 			this.clickable = true;
@@ -19,21 +17,6 @@
 			this.generated = false;
 			//meta to store currently focusing on which region
 			this.currentRegion = '';
-		},
-		onTemplateAdded: function(name){
-			this.addTemplateOnMenu(name, true);
-			this.flashCurrent();
-		},
-		onTemplateReseted: function(){
-			this.reset();
-		},
-		onSyncLocal: function(){
-			//sync end points
-			app.store.set('endPoints', app._global.endPoints);
-			//sync horizontal lines
-			app.store.set('horizontal-line', app._global['horizontal-line']);
-			//sync vertical lines
-			app.store.set('vertical-line', app._global['vertical-line']);
 		},
 		onReady: function(){
 			var that = this;
@@ -67,7 +50,9 @@
 			
 			//load locally stored template if there is no current
 			if(!app.store.get('current') && app._global.regionView){
-				this.generateLayout();
+				_.defer(function(){
+					that.getViewIn('side-menu').lockLayout();
+				});
 			}
 
 			//focus on this.$el to trigger events
@@ -75,17 +60,9 @@
 
 			//consult local storage whether side menu used to be opened or not
 			if(app.store.get('__opened__')){
-				var $trigger = this.$el.find('.side-menu-trigger'),
-					$list = this.$el.find('.side-menu-list');
-
-				//flash content
-				this.flashCurrent();
-				//
-				$trigger.toggleClass('active');
-				$list.toggleClass('active');
-
-				//toggle icon
-				$trigger.find('.fa').toggleClass('hidden');
+				_.defer(function(){
+					that.toggleSideMenu(true);
+				});
 			}
 
 			//on mouse move use app.coop to show the guide lines
@@ -148,16 +125,9 @@
 			this.$el.on('click', function(e){
 				var $target = $(e.target);
 				app.debug('clicking target...', $target);
-				//side menu classes
-				var stopPropagationClasses = ['side-menu-item', 'side-menu-templates-holder', 'tabs'],
-					sideFlag = false;
-				_.each(stopPropagationClasses, function(classname){
-					if($target.hasClass(classname)) sideFlag = true;
-				});
-				if(sideFlag) return;
 				//check whether side menu is active, if yes close it
 				if(that.$el.find('.side-menu-trigger').hasClass('active'))
-					that.toggleSideMenu(that.$el.find('.side-menu-trigger'));
+					that.toggleSideMenu();
 
 				//if end point menu is being shown, close menu ONLY and no further operations
 				var Menu = that.getViewIn('arrows');
@@ -175,7 +145,7 @@
 					return;
 				}
 
-				console.log($target);
+				app.debug($target);
 				//for clicking on non-region element when in locking view
 				if(that.generated && that.locked && !$target.hasClass('region') && !$target.hasClass('region-cover')){
 					while(!$target.hasClass('region'))
@@ -221,6 +191,7 @@
 			this.$el.find('.side-menu-templates-holder').css({
 				height: (height - blockHeight - adjust) + 'px'
 			});
+
 			//for resize
 			this.listenTo(app, 'app:resized', function(){
 				var height = that.$el.height();
@@ -236,11 +207,12 @@
 			});
 		},
 		actions: {
-			'side-menu': function($self){
-				this.toggleSideMenu($self);
+			'side-menu': function(){
+				this.toggleSideMenu();
 			},
 		},
-		toggleSideMenu: function($self){
+		toggleSideMenu: function(opened){
+			var $self = this.$el.find('.side-menu-trigger');
 			//flash current
 			if(!$self.hasClass('active'))
 				this.flashCurrent();
@@ -253,7 +225,7 @@
 
 			//flip side menu status in the local storage
 			var temp = app.store.get('__opened__');
-			app.store.set('__opened__', !temp);
+			app.store.set('__opened__', opened || !temp);
 		},
 		generateLayout: function(adjusting, overlay){
 			var x = [], y = [], that = this;
@@ -483,38 +455,21 @@
 			//change current loaded template name
 			this.$el.find('.side-menu-list .current-name').text(name);
 
+			var SideMenu = this.getViewIn('side-menu');
 			//for region and views, if locked generate view directly
 			if(app._global.regionView){
-				this.generateLayout();
+				//SideMenu.lockLayout will trigger generateLayout in create.js
 				if(!this.locked)
-					this.lockLayout(this.$el.find('.lock-button'));
+					SideMenu.lockLayout();
 			}else{
 				//make sure unlock and meshed
 				if(this.locked)
-					this.lockLayout(this.$el.find('.lock-button'), true);
+					SideMenu.lockLayout();
 				if(!this.meshed)
-					this.meshLayout(this.$el.find('.hide-button'));
+					SideMenu.meshLayout();
 			}
 
-			//flash text
-			this.flashCurrent();
-			//set current
-			app.store.set('current', name);
-
 			app.notify('Loaded!', 'Template <strong>' + name + '</strong> has been loaded.', 'ok', {icon: 'fa fa-fort-awesome'});
-		},
-		newTemplate: function(){
-			//reset locally stored current
-			app.store.remove('current');
-
-			//remove all the active class
-			this.$el.find('.side-menu-templates-holder .side-menu-item-text').removeClass('active');
-
-			//change template value to untitled
-			this.$el.find('.side-menu-list .current-name').text('untitled');
-
-			//reset layout
-			this.reset();
 		},
 		checkConstrain: function(e){
 			var that = this;
@@ -530,8 +485,7 @@
 			//dragging an end point return false
 			if(this.getViewIn('layout').dragging) return false;
 			//hover on points
-			var forbiddenClasses = ['end-point', 'side-menu-trigger', 'side-menu-list', 'side-menu-item', 'fa', 
-									'side-menu-templates-holder', 'operations-item', 'operations-holder', 'operations-subitem'],
+			var forbiddenClasses = ['end-point', 'side-menu-trigger', 'fa', 'operations-item', 'operations-holder', 'operations-subitem'],
 				forbidden = false;
 			_.each(forbiddenClasses, function(classname){
 				if(_.string.include($(e.target).attr('class'), classname))
@@ -602,7 +556,7 @@
 				this.$el.find('.side-menu-list .current-name').text(name);
 
 				//change stored current value
-				app.store.set('current', name);
+				//app.store.set('current', name);
 			}
 
 			this.$el.find('.side-menu-templates-holder').append($elem);
@@ -660,7 +614,46 @@
 		flashCurrent: function(){
 			this.$el.find('.side-menu-list .current-name-holder').addClass('flash');
 		},
-		onLayoutAdjusted: function(){
+		//---------------------------------- app coops ----------------------------------//
+		onLayoutResetted: function(){//when user adding/remving lines after generated 
+			this.resetLayout(true);
+		},
+		onActiveTemplateDeleted: function(){
+			this.reset();
+		},
+		onUserReset: function(){
+			this.reset();
+		},
+		onTemplateSaved: function(meta){
+			if(meta['new-gen']){//new template
+
+				//reset locally stored current. 
+				//this.reset() only resets layout, does not clean current key in the local storage
+				app.store.remove('current');
+
+				//remove all the active class
+				this.$el.find('.side-menu-templates-holder .side-menu-item-text').removeClass('active');
+
+				//change template value to untitled
+				this.$el.find('.side-menu-list .current-name').text('untitled');
+
+				//reset layout
+				this.reset();
+
+			}else if(meta.switching){//switching template
+				//load template
+				this.loadTemplate(meta.switching);
+				//set current
+				app.store.set('current', meta.switching.text());
+			}
+
+			//if not continue, add current
+			if(!meta.continue) this.addTemplateOnMenu(meta.name, true);
+			//flash text
+			this.flashCurrent();
+		},
+		//---------------------------------- view coops ----------------------------------//
+		onLayoutAdjusted: function(){//dragging end points
 			var that = this;
 			//only response if some layout has already been generated
 			if(!this.generated) return;
@@ -668,42 +661,14 @@
 			//reset layout
 			this.generateLayout(true);
 		},
-		onLayoutResetted: function(){
-			this.resetLayout(true);
+		onSyncLocal: function(){//sync local storage
+			//sync end points
+			app.store.set('endPoints', app._global.endPoints);
+			//sync horizontal lines
+			app.store.set('horizontal-line', app._global['horizontal-line']);
+			//sync vertical lines
+			app.store.set('vertical-line', app._global['vertical-line']);
 		},
-		onGenerateOverwrite: function(){
-			this.generateLayout();
-		},
-		onNewTemplateConfirmed: function(name){
-			//reset
-			this.newTemplate();
-		},
-		onSaveRegionViewConfig: function(name){
-			//store region and view relationsip
-			var temp = app.store.get(name);
-			temp.regionView = app._global.regionView;
-			var newObj = $.extend(true, {}, temp); //deep copy
-			app.store.remove(name);
-			app.store.set(name, newObj);
-		},
-		onContinueTemplateSwitch: function($button){
-			this.loadTemplate($button);
-		},
-		onSaveTemplateSwitchConfirmed: function(meta){
-			//save regionView to local storage
-			var temp = app.store.get(meta.name);
-			temp.regionView = app._global.regionView;
-			var newObj = $.extend(true, {}, temp); //deep copy
-			app.store.remove(name);
-			app.store.set(name, newObj);
-			//load template
-			this.loadTemplate(meta.$button);
-		},
-		//---------------------------------- app coops ----------------------------------//
-		onUserReset: function(){
-			this.reset();
-		},
-		//---------------------------------- view coops ----------------------------------//
 		onViewMenuClose: function(){
 			this.$el.find('.view-menu').addClass('hidden');
 			//clean active on region
@@ -743,14 +708,6 @@
 			//hide arrow
 			this.$el.find('.end-point-menu').addClass('hidden');
 		},
-		onSideMenuHover: function(){
-			//hide guide lines
-			//re-set guideline
-			app.coop('guideline-move',{
-				x: 0,
-				y: 0
-			});
-		},
 		onLayoutLocked: function(locked){
 			var $locker = this.$el.find('.locker');
 
@@ -764,6 +721,12 @@
 				//lock always show .
 				//change lock div z-index to 3, for view inserting
 				$locker.css({'z-index': 3}).removeClass('hidden');
+
+				//re-set guideline
+				app.coop('guideline-move',{
+					x: 0,
+					y: 0
+				});
 
 			}else{//newly unlocked
 

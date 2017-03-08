@@ -58,36 +58,33 @@
 				this.saveTemplate();
 			},
 			overwrite: function(){
-				//get globally stored values
-				var temp = {}, name = this.getEditor('name').getVal();
-				temp.endPoints = app._global.endPoints;
-				temp['horizontal-line'] = app._global['horizontal-line'];
-				temp['vertical-line'] = app._global['vertical-line'];
-				temp['view-name'] = this.getEditor('view-name').getVal();
+				//save to storage
+				this.saveToStorage();
 
-				//store
-				app.store.remove(name);
-				app.store.set(name, temp);
-				app.coop('save-region-view-config', name);
-
-				if(this.get('new-gen'))
-					app.coop('new-template-confirmed', name);
-
-				if(this.get('switching'))
-					app.coop('save-template-switch-confirmed', {
-						name: name,
-						$button: this.get('switching')
-					});
+				//echo coop event
+				app.coop('template-saved', {
+					name: this.getEditor('name').getVal(),
+					'new-gen': this.get('new-gen'),
+					switching: this.get('switching')
+				});
 
 				this.close();
 			},
 			'continue-new': function(){
-				app.coop('new-template-confirmed');
+				app.coop('template-saved', {
+					name: this.getEditor('name').getVal(),
+					'new-gen': true, //force new-gen is true, to trigger reset event in create.js
+					continue: true
+				});
 				this.close();
 			},
 			'continue-switch': function(){
-				app.coop('continue-template-switch', this.get('switching'));
-				this.close();	
+				app.coop('template-saved', {
+					name: this.getEditor('name').getVal(),
+					switching: this.get('switching'),
+					continue: true
+				});
+				this.close();
 			},
 			cancel: function(){
 				this.$el.find('.overwrite-message').addClass('hidden');
@@ -95,32 +92,40 @@
 		},
 		saveTemplate: function(){
 			if(!this.validate(true)){
-				var temp = {}, name = this.getEditor('name').getVal();
-				temp.endPoints = app._global.endPoints;
-				temp['horizontal-line'] = app._global['horizontal-line'];
-				temp['vertical-line'] = app._global['vertical-line'];
-				temp['view-name'] = this.getEditor('view-name').getVal();
-
+				
 				if(app.store.get(name)){//overwrite
 					this.$el.find('.overwrite-message .name').text(name);
 					this.$el.find('.overwrite-message').removeClass('hidden');
 				}else{//no overwrite
-					app.store.set(name, temp);
-					app.coop('template-added', name);
-					app.coop('save-region-view-config', name);
-					if(this.get('new-gen'))
-						app.coop('new-template-confirmed', name);
 
-					if(this.get('switching'))
-						app.coop('save-template-switch-confirmed', {
-							name: name,
-							$button: this.get('switching')
-						});
+					//save to local storage
+					this.saveToStorage();
+
+					//echo coop event
+					app.coop('template-saved', {
+						name: this.getEditor('name').getVal(),
+						'new-gen': this.get('new-gen'),
+						switching: this.get('switching')
+					});
 					
 					app.notify('Saved!', 'Template <strong>' + name + '</strong> has been saved.', 'ok', {icon: 'fa fa-fort-awesome'});
 					this.close();
 				}
 			}
+		},
+		saveToStorage: function(){
+			var temp = {}, 
+				name = this.getEditor('name').getVal();
+
+			temp['view-name'] = this.getEditor('view-name').getVal();
+			temp.endPoints = app._global.endPoints;
+			temp['horizontal-line'] = app._global['horizontal-line'];
+			temp['vertical-line'] = app._global['vertical-line'];
+			//save region and view configuration use global variable
+			temp.regionView = app._global.regionView;
+
+			app.store.remove(name);//remove old entry
+			app.store.set(name, $.extend(true, {}, temp));//deep copy
 		}
 	});
 

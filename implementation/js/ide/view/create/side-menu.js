@@ -28,16 +28,32 @@
 
 			//block hover on side menu to propagate
             this.$el
-            .on('mousemove', app.throttle(function(e){
+            .on('mousemove', function(e){
             	e.preventDefault();
             	e.stopPropagation();
 
             	//cleanup the guide line, if hovering on side menu
-            	that.coop('side-menu-hover');
-            }))
+            	//that.coop('side-menu-hover');
+            })
             //block click event on side menu to propagate
             .on('click', function(e){
             	e.stopPropagation();
+            	e.preventDefault();
+
+            	that.coop('side-menu-clicked');
+            });
+
+            //block hover on side menu to propagate
+            this.$el.children()
+            .on('mousemove', function(e){
+            	e.preventDefault();
+            	e.stopPropagation();
+
+            	//cleanup the guide line, if hovering on side menu
+            	//that.coop('side-menu-hover');
+            })
+            //block click event on side menu to propagate
+            .on('click', function(e){
             	e.preventDefault();
 
             	that.coop('side-menu-clicked');
@@ -77,6 +93,20 @@
 					class: 'save-overlay create-overlay',
 				});
 			},
+			'new-template': function(){
+				var Save = app.get('Create.Save');
+				(new Save({
+					data: {
+						'new-gen': true
+					}
+				})).overlay({
+					effect: false,
+					class: 'save-overlay create-overlay',
+				});
+			},
+
+
+
 			'delete-template': function($self){
 				var Delete = app.get('Create.Delete');
 				(new Delete({
@@ -87,17 +117,6 @@
 				})).overlay({
 					effect: false,
 					class: 'delete-overlay create-overlay danger-title',
-				});
-			},
-			'new-template': function(){
-				var Save = app.get('Create.Save');
-				(new Save({
-					data: {
-						'new-gen': true
-					}
-				})).overlay({
-					effect: false,
-					class: 'save-overlay create-overlay',
 				});
 			},
 		},
@@ -112,7 +131,7 @@
 			$lockButton.toggleClass('active');
 			$lockButton.find('.lock').toggleClass('hidden');
 			$lockButton.find('.unlock').toggleClass('hidden');
-			
+
 			//echo coop event
 			this.coop('layout-locked', $lockButton.hasClass('active'));
 		},

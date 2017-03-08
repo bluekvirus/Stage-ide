@@ -54,7 +54,9 @@
 			cached.regionView = app.store.get('regionView');
 
 			temp = app.store.get(app.store.get('current'));
-			
+			//make temp.regionView undefined if not exist in order to be compared with cached
+			temp.regionView = temp.regionView || undefined;
+
 			//deep compare two objects
 			if(!_.isEqual(cached, temp)){
 				app.store.remove('current'); //not equal remove current

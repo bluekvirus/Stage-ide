@@ -25,7 +25,7 @@
 					$('.side-menu-list .current-name').text('untitled');
 					app.store.remove('current');
 					//send coop event to reset layout
-					app.coop('template-reseted');
+					app.coop('active-template-deleted');
 				}
 
 				//send notification
