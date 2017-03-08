@@ -146,6 +146,7 @@
 				}
 
 				app.debug($target);
+				console.log($target, that.generated, that.locked);
 				//for clicking on non-region element when in locking view
 				if(that.generated && that.locked && !$target.hasClass('region') && !$target.hasClass('region-cover')){
 					while(!$target.hasClass('region'))
@@ -154,6 +155,10 @@
 
 				//locked and generated means inserting views
 				if((that.generated && that.locked) || $target.hasClass('region-cover')){
+
+					//exclude view-menu
+					if($target.hasClass('view-menu'))
+						return;
 
 					//setup current region
 					that.currentRegion = $target.attr('region') || that.currentRegion;
@@ -461,6 +466,8 @@
 				//SideMenu.lockLayout will trigger generateLayout in create.js
 				if(!this.locked)
 					SideMenu.lockLayout();
+				else
+					this.generateLayout();
 			}else{
 				//make sure unlock and meshed
 				if(this.locked)
@@ -645,10 +652,12 @@
 				this.loadTemplate(meta.switching);
 				//set current
 				app.store.set('current', meta.switching.text());
+			}else if(meta.overwrite){
+				//??overwrite needs some more actions??
 			}
 
 			//if not continue, add current
-			if(!meta.continue) this.addTemplateOnMenu(meta.name, true);
+			if(!meta.continue && !meta.overwrite) this.addTemplateOnMenu(meta.name, true);
 			//flash text
 			this.flashCurrent();
 		},

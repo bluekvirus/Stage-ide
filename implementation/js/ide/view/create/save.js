@@ -65,7 +65,8 @@
 				app.coop('template-saved', {
 					name: this.getEditor('name').getVal(),
 					'new-gen': this.get('new-gen'),
-					switching: this.get('switching')
+					switching: this.get('switching'),
+					overwrite: true
 				});
 
 				this.close();
@@ -91,8 +92,11 @@
 			}
 		},
 		saveTemplate: function(){
+
 			if(!this.validate(true)){
 				
+				var name = this.getEditor('name').getVal();
+
 				if(app.store.get(name)){//overwrite
 					this.$el.find('.overwrite-message .name').text(name);
 					this.$el.find('.overwrite-message').removeClass('hidden');
@@ -126,6 +130,21 @@
 
 			app.store.remove(name);//remove old entry
 			app.store.set(name, $.extend(true, {}, temp));//deep copy
+
+			//it has a view name, need to store it as a view locally
+			if(temp['view-name']){
+				//get html from the layout
+				var html = app.locate('Create').view.getViewIn('generate-view').$el[0].outerHTML;
+
+				//call backend to save this view
+				app.remote({
+					url: '/api/viewsaving',
+					payload: {
+						html: html,
+						name: temp['view-name']
+					}	
+				});
+			}
 		}
 	});
 

@@ -1,0 +1,1 @@
+(function(app){ app.view("User.Qwe",{ template: "@view/user/qwe.html"}); })(Application);

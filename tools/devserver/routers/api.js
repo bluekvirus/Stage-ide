@@ -64,6 +64,52 @@ module.exports = function(server){
 		});
 	});
 
+	router.post('/viewsaving', function(req, res){
+		//get html and name
+		var html = req.body.html,
+			name = req.body.name;
+
+		//two basic paths
+		var baseJsSrc = '../../implementation/js/ide/view/user/',
+			baseHtmlSrc = '../../implementation/static/template/view/user/';
+
+		//relative path and view name
+		var rpath = name.toLowerCase().split('.');
+		rpath.pop();
+		rpath = rpath.join('/');
+			
+		var fileName = name.split('.').pop().replace(/([A-Z])/g, "-$1").replace(/^-/, '').toLowerCase(),
+			folders = name.toLowerCase().split('.');
+
+		//delete last element in folders which is the file name
+		folders.pop();
+
+		var tempHtml = baseHtmlSrc,
+			tempJs = baseJsSrc;
+		//create directories if necessary
+		while(folders.length){
+			tempHtml = path.join(tempHtml, folders.shift());
+			tempJs = path.join(tempJs, folders.shift());
+
+			if (!fs.existsSync(tempHtml)){
+			    fs.mkdirSync(tempHtml);
+			}
+
+			if (!fs.existsSync(tempJs)){
+			    fs.mkdirSync(tempJs);
+			}
+		}
+
+		//write html
+		fs.writeFileSync(path.join(tempHtml, fileName + '.html'), html);
+
+		//
+		var jsStr = '(function(app){ app.view("User.' + name + '",{ template: "@view/user/' + path.join(rpath, fileName + '.html') + '"}); })(Application);';
+		fs.writeFileSync(path.join(tempJs, fileName + '.js'), jsStr);
+
+		return res.status(200).json({'msg': 'Saved'});
+	});
+
 };
 
 function constructLayout(region, hlines, vlines, counter){
