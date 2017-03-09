@@ -71,14 +71,21 @@ body,
 			box-shadow: 3px 3px 5px @border;
 			.tabs {
 				padding: @grid-gutter-width / 2 @grid-gutter-width / 2 0 @grid-gutter-width / 2;
+				text-align: center;
 				.tab {
-					text-align: center;
 					width: 70px;
 					padding: @grid-gutter-width / 2;
 					border-top: 1px solid @border;
+					display: inline-block;
 					>span {
 						font-weight: 600;
 						color: @gray-light;
+					}
+					&.center-tab {
+						border-left: 1px solid @border;
+						&+.center-tab {
+							border-right: 1px solid @border;
+						}
 					}
 					&.pull-left {
 						border-right: 1px solid @border;
@@ -98,7 +105,8 @@ body,
 							font-weight: 600;
 							color: #333;
 						}
-						&.pull-left {
+						&.pull-left,
+						&.center-tab {
 							border-left: 2px solid @border;
 							border-top: 2px solid @border;
 							border-right: 2px solid @border; 
@@ -166,6 +174,44 @@ body,
 						height: 100%;
 						width: 100%;
 						resize: none;
+					}
+				}
+				.svg-content,
+				.editor-content {
+					height: 450px;
+					padding: @grid-gutter-width / 2;
+					.svg-list,
+					.editor-list {
+						width: 30%;
+						height: 100%;
+						border-right: 1px solid @border;
+						padding-right: @grid-gutter-width / 2;
+						overflow-y: auto;
+						.svg-list-item,
+						.editor-list-item {
+							background-color: #fff;
+							margin-bottom: @grid-gutter-width / 2;
+							padding: @grid-gutter-width / 2;
+							box-shadow: 2px 2px 4px @border;
+							//overflow ellipsis
+							white-space: nowrap; 
+							overflow: hidden;
+							text-overflow: ellipsis;
+							>span {
+								font-size: 0.9em;
+								font-weight: 600;
+							}
+						}
+					}
+					.textarea-holder {
+						width: 70%;
+						height: 100%;
+						padding-left: @grid-gutter-width / 2;
+						textarea {
+							height: 100%;
+							width: 100%;
+							resize: none;
+						}
 					}
 				}
 				.data-content {

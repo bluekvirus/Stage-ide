@@ -135,6 +135,7 @@
 			if(temp['view-name']){
 				//get html from the layout
 				var html = app.locate('Create').view.getViewIn('generate-view').$el[0].outerHTML;
+				//var html = app.locate('Create').view.getViewIn('generate-view').$el.html();
 
 				//call backend to save this view
 				app.remote({

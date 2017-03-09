@@ -52,6 +52,9 @@
 				}
             });
 
+            //enable tooptip for svg and editor lists
+            this.$el.find('[data-toggle="tooltip"]').tooltip();
+
 			//block hover on view menu to propagate
             this.$el
             .on('mousemove', function(e){
