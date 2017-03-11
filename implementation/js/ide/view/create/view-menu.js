@@ -13,7 +13,25 @@
 		coop: ['view-menu-show'],
 		//[editors]: {...},
 		
-		initialize: function(){},
+		initialize: function(){
+			//temp storage for storing svgs
+			this.tempSvg = {};
+
+			//temp storage for storing editors
+			this.tempEditor = {};
+
+			//initial textarea setup for svgs
+			this.initialSvgSetup = 'function(paper){\r\n\t\r\n}';
+
+			//initial textarea setup for editors
+			this.initialEditorSetup = '{\r\n\ttype: ""\r\n}';
+
+			//flag indicating which editing mode is on
+			this.viewEditing = true;
+
+			//flag to indicate which view is currently being activated
+			this.activatedView = '';
+		},
 		//onShow: function(){},
 		//onDataRendered: function(){},
 		onReady: function(){
@@ -50,6 +68,17 @@
 				else{
 					that.$el.find('#data-url').prop('disabled', true);	
 				}
+            });
+
+            //initial view setup, show view related configs
+            this.viewRawSwitch(true);
+            //swtich view or raw
+            this.$el.find('#view-html-switch').on('change', function(e){
+            	var $this = $(this);
+            	//change flag
+            	that.viewEditing = $this.prop('checked');
+            	//true is view, false is raw
+            	that.viewRawSwitch($this.prop('checked'));
             });
 
             //enable tooptip for svg and editor lists
@@ -100,6 +129,17 @@
 				//only toggles active classes, now only add existing class
 				$self.siblings().removeClass('active');
 				$self.addClass('active');
+
+				//scan view's editor and svg tags
+				var viewName = $self.text(),
+					svgs = app.get(viewName).create().getTemplate(true).match(/svg=\"([^"]*)\"/g),
+					editors = app.get(viewName).create().getTemplate(true).match(/editor=\"([^"]*)\"/g);
+
+				//modify this.activatedView flag
+				this.activatedView = viewName;
+
+				//add svg and edtior
+				this.addSvgEditorTags(svgs, editors);
 			},
 			'view-cancel': function(){
 				this.coop('view-menu-close');
@@ -147,11 +187,15 @@
 				this.coop('view-menu-add-view', {
 					content: content,
 					data: (data && !error) ? data : {},
-					method: method
+					method: method,
+					svgs: this.tempSvg,
+					editors: this.tempEditor
 				});
 			},
 			'active-menu-tab': function($self){
-				var name = $self.attr('tab');
+				var name = $self.attr('tab'),
+					current = $self.parent().find('.active').attr('tab'),
+					$el;
 				//add active class on tabs
 				$self.siblings().removeClass('active');
 				$self.addClass('active');
@@ -159,8 +203,152 @@
 				this.$el.find('.view-menu-middle-holder .tab-content').addClass('hidden');
 				//show actived
 				this.$el.find('.view-menu-middle-holder .tab-content[content="' + name + '"]').removeClass('hidden');
+
+				//if switch to svg or editors, scan html editor, if raw enabled
+				if(name === 'svg' || name === 'editor'){
+					var $htmlEditor = this.$el.find('#html-editor'),
+						svg, editors;
+
+					if(this.viewEditing){
+						svgs = app.get(this.activatedView).create().getTemplate(true).match(/svg=\"([^"]*)\"/g);
+						editors = app.get(this.activatedView).create().getTemplate(true).match(/editor=\"([^"]*)\"/g);
+					}else{
+						//scan for svg and editor tags
+	            		svgs = $htmlEditor.val().match(/svg=\"([^"]*)\"/g);
+						editors = $htmlEditor.val().match(/editor=\"([^"]*)\"/g);
+					}
+					
+					//add svg and edtior
+					this.addSvgEditorTags(svgs, editors);
+				}
+
+				//when switching tabs away from svgs and editors, should store the configuration of svgs and editors
+				if(current === 'svg'){
+					$el = this.$el.find('.svg-list .svg-list-item.active');
+
+					//save
+					this.tempSvg[$el.text()] = this.$el.find('#svg-editor').val();
+				}else if(current === 'editor'){
+					$el = this.$el.find('.editor-list .editor-list-item.active');
+
+					//save
+					this.tempEditor[$el.text()] = this.$el.find('#editors-editor').val();
+				}
+			},
+			'load-svg': function($self){
+				//save currently active content to editor-content
+				var $active = $self.parent().find('.active');
+				this.tempSvg[$active.text()] = this.$el.find('#svg-editor').val();
+
+				//active current, switch content
+				$self.addClass('active').siblings().removeClass('active');
+				this.$el.find('#svg-editor').val(this.tempSvg[$self.text()]);
+			},
+			'load-editor': function($self){
+				//save currently active content to editor-content
+				var $active = $self.parent().find('.active');
+				this.tempEditor[$active.text()] = this.$el.find('#editors-editor').val();
+
+				//active current, switch content
+				$self.addClass('active').siblings().removeClass('active');
+				this.$el.find('#editors-editor').val(this.tempEditor[$self.text()]);
 			},
 		},
+		//----------------------------------------- helpers -----------------------------------------//
+		addSvgEditorTags: function(svgs, editors){
+			var that = this;
+
+			if(svgs && svgs.length){
+				//empty old list
+				this.$el.find('.svg-content .svg-list').empty();
+
+				_.each(svgs, function(svgStr, index){
+					var str = svgStr.replace('svg=', '').replace(/\"|/g, '');
+					var $temp = $('<div class="svg-list-item" data-toggle="tooltip" data-placement="top" title="' + str + '" action="load-svg"><span>' + str + '</span></div>');
+
+					if(!that.tempSvg[str])
+						that.tempSvg[str] = that.initialSvgSetup;
+
+					if(index === 0){
+						//active
+						$temp.addClass('active');
+
+						//change svg editor content
+						that.$el.find('#svg-editor').val(that.tempSvg[str]);
+					}
+						
+					that.$el.find('.svg-content .svg-list').append($temp);
+				});
+			}
+
+			if(editors && editors.length){
+				//empty old list
+				this.$el.find('.editor-content .editor-list').empty();
+
+				_.each(editors, function(editorStr, index){	
+					var str = editorStr.replace('editor=', '').replace(/\"|/g, '');
+					var $temp = $('<div class="svg-list-item" data-toggle="tooltip" data-placement="top" title="' + str + '" action="load-editor"><span>' + str + '</span></div>');
+
+					//if not previously stored, give an intial option
+					if(!that.tempEditor[str])
+						that.tempEditor[str] = that.initialEditorSetup;
+
+					if(index === 0){
+						$temp.addClass('active');
+
+						//change svg editor content
+						that.$el.find('#editors-editor').val(that.tempEditor[str]);
+					}
+
+					that.$el.find('.editor-content .editor-list').append($temp);
+				});
+			}
+		},
+		viewRawSwitch: function(view){
+			var that = this;
+			//remove active class on all tabs
+			this.$el.find('.tabs .tab').removeClass('active');
+
+			if(view){
+				//hide html tab, active view tab
+        		this.$el.find('.tabs [tab="html"]').addClass('hidden');
+        		this.$el.find('.tabs [tab="view"]').removeClass('hidden').addClass('active');
+        		
+        		//show view content, hide other active content
+        		this.$el.find('.view-menu-middle-holder .tab-content').addClass('hidden');
+        		this.$el.find('.view-menu-middle-holder .view-content').removeClass('hidden');
+
+        		//lock SVG and Editors tab
+        		(new LockView()).overlay({
+        			effect: false,
+        			anchor: $('.svg-content')
+        		});
+
+				(new LockView()).overlay({
+        			effect: false,
+        			anchor: $('.editor-content')
+        		});
+
+			}else{
+				//hide html tab, active view tab
+        		this.$el.find('.tabs [tab="html"]').removeClass('hidden').addClass('active');
+        		this.$el.find('.tabs [tab="view"]').addClass('hidden');
+        		
+        		//show html content, hide other active content
+        		this.$el.find('.view-menu-middle-holder .tab-content').addClass('hidden');
+        		this.$el.find('.view-menu-middle-holder .html-content').removeClass('hidden');
+
+        		//unlock SVG tab and Editors tab
+        		$('.svg-content').overlay(false);
+        		$('.editor-content').overlay(false);
+
+        		//switch from view to html, if user has selected html after activating a view, need to populate html editor with view's tempalte
+				if(this.activatedView) 
+					this.$el.find('#html-editor').val(app.get(this.activatedView).create().getTemplate(true));
+				
+			}
+		},
+		//----------------------------------------- coops -----------------------------------------//
 		onViewMenuShow: function(obj){
 			var that = this,
 				$target = obj.$target,
@@ -228,8 +416,18 @@
 				$viewMenu.addClass('hidden');
 			}
 		},
-		
-
 	});
+
+	
+	var LockView = app.view({
+
+		template: [
+					'<div class="box text-left">',
+						'<div class="heading"><i class="fa fa-lock"></i> <strong>Locked</strong></div>',
+	        			'<div class="body">Please swtich to "Raw" model to edit.</div>',
+        			'</div>'
+        		],
+
+    });
 
 })(Application);

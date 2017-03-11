@@ -69,59 +69,119 @@ body,
 			background-color: @background;
 			border: 1px solid @border;
 			box-shadow: 3px 3px 5px @border;
-			.tabs {
-				padding: @grid-gutter-width / 2 @grid-gutter-width / 2 0 @grid-gutter-width / 2;
-				text-align: center;
-				.tab {
-					width: 70px;
-					padding: @grid-gutter-width / 2;
-					border-top: 1px solid @border;
-					display: inline-block;
-					>span {
-						font-weight: 600;
-						color: @gray-light;
+			.view-menu-top-holder {
+				.view-html-toggle-holder {
+					width: 15%;
+					padding: @grid-gutter-width / 2 0 0 @grid-gutter-width / 2;
+					.onoffswitch {
+					    position: relative; width: 100%;
+					    -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
 					}
-					&.center-tab {
-						border-left: 1px solid @border;
-						&+.center-tab {
-							border-right: 1px solid @border;
-						}
+					.onoffswitch-checkbox {
+					    display: none;
 					}
-					&.pull-left {
-						border-right: 1px solid @border;
-						&:first-child {
-							border-left: 1px solid @border;
-						}
+					.onoffswitch-label {
+					    display: block; 
+					    overflow: hidden; 
+					    cursor: pointer;
+					    border: 2px solid darken(@border, 10%);
+					    border-radius: 20px; 
+					    margin-bottom: 0 !important;
+					    //
+					    box-shadow: 1px 1px 2px darken(@border, 10%);
 					}
-					&.pull-right {
-						border-left: 1px solid @border;
-						&:last-child {
-							border-right: 1px solid @border;
-						}
+					.onoffswitch-inner {
+					    display: block; width: 200%; margin-left: -100%;
+					    transition: all 0.2s ease-in 0s;
 					}
-					&.active {
-						background-color: @background;
+					.onoffswitch-inner:before, .onoffswitch-inner:after {
+					    display: block; float: left; width: 50%; padding: 0; height: 25px;  line-height: 25px; 
+					    font-size: 0.9em; color: #fff; font-weight: 600;
+					    box-sizing: border-box;
+					}
+					.onoffswitch-inner:before {
+					    content: "View";
+					    padding-left: @grid-gutter-width;
+					    background-color: @brand-info; color: #fff;
+					}
+					.onoffswitch-inner:after {
+					    content: "Raw";
+					    padding-right: @grid-gutter-width;
+					    background-color: @brand-warning; color: #fff;
+					    text-align: right;
+					}
+					.onoffswitch-switch {
+					    display: block; width: 16px; height: 16px; margin: 6px; margin-bottom: 0 !important;
+					    background: #fff;
+					    position: absolute; top: 0px; bottom: 0;
+					    right: 55px;
+					    border: 2px solid @border; 
+					    border-radius: 20px;
+					    transition: all 0.2s ease-in 0s; 
+					}
+					.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
+					    margin-left: 0;
+					}
+					.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
+					    right: 0;
+					}
+				}
+				.tabs {
+					padding: @grid-gutter-width / 2 @grid-gutter-width / 2 0 @grid-gutter-width / 2;
+					text-align: center;
+					width: 85%;
+					.tab {
+						width: 70px;
+						padding: @grid-gutter-width / 2;
+						border-top: 1px solid @border;
+						display: inline-block;
 						>span {
 							font-weight: 600;
-							color: #333;
+							color: @gray-light;
 						}
-						&.pull-left,
 						&.center-tab {
-							border-left: 2px solid @border;
-							border-top: 2px solid @border;
-							border-right: 2px solid @border; 
-
-							&+.pull-left {
-								border-left: none;
+							border-left: 1px solid @border;
+							&+.center-tab {
+								border-right: 1px solid @border;
+							}
+						}
+						&.pull-left {
+							border-right: 1px solid @border;
+							border-left: 1px solid @border;
+							&:first-child {
+								border-left: 1px solid @border;
 							}
 						}
 						&.pull-right {
-							border-left: 2px solid @border;
-							border-top: 2px solid @border;
-							border-right: 2px solid @border; 
+							border-left: 1px solid @border;
+							&:last-child {
+								border-right: 1px solid @border;
+							}
+						}
+						&.active {
+							background-color: @background;
+							>span {
+								font-weight: 600;
+								color: #333;
+							}
+							&.pull-left,
+							&.center-tab {
+								border-left: 2px solid @border;
+								border-top: 2px solid @border;
+								border-right: 2px solid @border; 
 
-							&+.pull-right {
-								border-right: none;
+								&+.pull-left {
+									border-left: none;
+								}
+							}
+							&.pull-right {
+								border-left: 2px solid @border;
+								border-top: 2px solid @border;
+								border-right: 2px solid @border; 
+
+								&+.pull-right {
+									border-right: none;
+								}
 							}
 						}
 					}
@@ -200,6 +260,9 @@ body,
 							>span {
 								font-size: 0.9em;
 								font-weight: 600;
+							}
+							&.active {
+								background-color: @border;
 							}
 						}
 					}

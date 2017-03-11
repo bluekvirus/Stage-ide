@@ -146,7 +146,6 @@
 				}
 
 				app.debug($target);
-				console.log($target, that.generated, that.locked);
 				//for clicking on non-region element when in locking view
 				if(that.generated && that.locked && !$target.hasClass('region') && !$target.hasClass('region-cover')){
 					while(!$target.hasClass('region'))
@@ -159,6 +158,9 @@
 					//exclude view-menu
 					if($target.hasClass('view-menu'))
 						return;
+
+					//check whether parent region already be assigned, if yes change current region.
+					//console.log(that.getViewIn('generate-view').getRegion(that.currentRegion) && that.getViewIn('generate-view').getRegion(that.currentRegion).parentCt.parentRegion);
 
 					//setup current region
 					that.currentRegion = $target.attr('region') || that.currentRegion;
@@ -366,6 +368,23 @@
 						//sync with local storage
 						app.store.set('regionView', $.extend(true, {}, app._global.regionView));
 					}
+
+					//contruct a mapping from point to region
+					/*var regions = that.getViewIn('generate-view').$el.find('.region'),
+						height = that.$el.height(),
+						width = that.$el.width();
+
+					_.each(regions, function(el){
+						var $el = $(el);
+
+						var boundingRect = el.getBoundingClientRect();
+
+						//translate boundingRect from exact coordinates to percentage
+						
+
+						
+					});*/
+					
 
 					//re-render views
 					if(_.keys(app._global.regionView).length){
