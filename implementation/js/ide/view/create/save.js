@@ -34,7 +34,7 @@
 					field: 'col-md-8',
 				},
 			},
-			'view-name': {
+			/*'view-name': {
 				type: 'text',
 				label: 'View Name(optional)',
 				help: 'the names of views use this layout configuration, separated by ";"',
@@ -48,7 +48,7 @@
 					label: 'col-md-4',
 					field: 'col-md-8',
 				},	
-			}
+			}*/
 		},
 		actions: {
 			close: function(){
@@ -121,7 +121,7 @@
 			var temp = {}, 
 				name = this.getEditor('name').getVal();
 
-			temp['view-name'] = this.getEditor('view-name').getVal();
+			//temp['view-name'] = this.getEditor('view-name').getVal();
 			temp.endPoints = app._global.endPoints;
 			temp['horizontal-line'] = app._global['horizontal-line'];
 			temp['vertical-line'] = app._global['vertical-line'];
@@ -131,21 +131,19 @@
 			app.store.remove(name);//remove old entry
 			app.store.set(name, $.extend(true, {}, temp));//deep copy
 
-			//it has a view name, need to store it as a view locally
-			if(temp['view-name']){
-				//get html from the layout
-				var html = app.locate('Create').view.getViewIn('generate-view').$el[0].outerHTML;
-				//var html = app.locate('Create').view.getViewIn('generate-view').$el.html();
+			//get html from the layout
+			var html = app.locate('Create').view.getViewIn('generate-view').$el[0].outerHTML;
+			//var html = app.locate('Create').view.getViewIn('generate-view').$el.html();
 
-				//call backend to save this view
-				app.remote({
-					url: '/api/viewsaving',
-					payload: {
-						html: html,
-						name: temp['view-name']
-					}	
-				});
-			}
+			//call backend to save this view
+			app.remote({
+				url: '/api/viewsaving',
+				payload: {
+					html: html,
+					name: name
+				}	
+			});
+			
 		}
 	});
 

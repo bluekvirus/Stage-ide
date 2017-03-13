@@ -50,9 +50,7 @@
 			
 			//load locally stored template if there is no current
 			if(!app.store.get('current') && app._global.regionView){
-				_.defer(function(){
-					that.getViewIn('side-menu').lockLayout();
-				});
+				that.getViewIn('side-menu').lockLayout();
 			}
 
 			//focus on this.$el to trigger events
@@ -60,9 +58,7 @@
 
 			//consult local storage whether side menu used to be opened or not
 			if(app.store.get('__opened__')){
-				_.defer(function(){
-					that.toggleSideMenu(true);
-				});
+				that.toggleSideMenu(true);
 			}
 
 			//on mouse move use app.coop to show the guide lines
@@ -157,7 +153,7 @@
 
 					//exclude view-menu
 					if($target.hasClass('view-menu'))
-						return;
+						return;		
 
 					//check whether parent region already be assigned, if yes change current region.
 					//console.log(that.getViewIn('generate-view').getRegion(that.currentRegion) && that.getViewIn('generate-view').getRegion(that.currentRegion).parentCt.parentRegion);
@@ -169,8 +165,24 @@
 					//remove highlight
 					if(!$target.hasClass('region-cover')){
 						that.$el.find('.region-generate-view .region.active').removeClass('active');
+						
+						//check whether it is a sub-region of an assigned region
+						//get parent region name
+						var parentName = $target.data().region.parentCt.parentRegion._name,
+							flag;
+
+						//check whether parent has already been assigned
+						flag = _.find(app._global.regionView, function(rv){ return rv.regionName === parentName; });
+
+						//if parent already been assigned, then make parent as target region
+						if(flag){
+							$target = $target.data().region.parentCt.parentRegion.$el;
+							that.currentRegion = parentName;
+						}
+						
 						$target.addClass('active');	
 						that.adjustRegionCover(true, $target);
+
 					}else{
 						that.adjustRegionCover(true);
 					}
@@ -354,47 +366,91 @@
 					}
 				})
 				.done(function(data){
-					if(!adjusting) app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
 					var _Demo = app.view(/*'_Demo', */{
 						layout: _.extend(data.layout)
 					});
 					that.show('generate-view', _Demo);
-					if(!adjusting){
-						// that.generateLock();
-						// that.generateUnmesh();
-						
-						//object to store region-view configuration globally
-						app._global.regionView = app._global.regionView || {};
-						//sync with local storage
-						app.store.set('regionView', $.extend(true, {}, app._global.regionView));
-					}
-
+					
+					//global storage for storing region coordinates, used as base for comparison later
+					app._global.regions = [];
 					//contruct a mapping from point to region
-					/*var regions = that.getViewIn('generate-view').$el.find('.region'),
+					var regions = that.getViewIn('generate-view').$el.find('.region'),
 						height = that.$el.height(),
 						width = that.$el.width();
 
 					_.each(regions, function(el){
-						var $el = $(el);
+						var boundingRect = _.clone(el.getBoundingClientRect());//make a copy
 
-						var boundingRect = el.getBoundingClientRect();
+						app._global.regions.push({
+							top: trimNumber(boundingRect.top / height * 100), //transfer it into percentage
+							left: trimNumber(boundingRect.left / width * 100),
+							bottom: trimNumber(boundingRect.bottom / height * 100),
+							right: trimNumber(boundingRect.right / width * 100),
+							regionName: $(el).attr('region') //region name for later reference
+						});
+					});
 
-						//translate boundingRect from exact coordinates to percentage
-						
+					//if adjusting, since the region names will not change, update the coords should be enough
+					if(adjusting){
+						//update app._global.regionViews' coordinates based on regionName
+						_.map(app._global.regionView, function(rv){
+							//find corresponding region
+							var region = _.find(app._global.regions, function(r){ return r.regionName === rv.regionName; });
 
-						
-					});*/
-					
-
-					//re-render views
-					if(_.keys(app._global.regionView).length){
-						_.each(app._global.regionView, function(obj, r){
-							//load view into the region
-							that.getViewIn('generate-view').spray(that.$el.find('[region="' + r + '"]'), obj.view, {
-								data: obj.data
-							});
+							//update regionView's coordinate based on newly resized region
+							rv.top = region.top;
+							rv.bottom = region.bottom;
+							rv.left = region.left;
+							rv.right = region.right;
 						});
 					}
+					//only show notifications when not adjusting
+					else{
+						// that.generateLock();
+						// that.generateUnmesh();
+						
+						//show notification
+						app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
+						//object to store region-view configuration globally, empty array if it does not exist.
+						app._global.regionView = app._global.regionView || []; //now it is an array
+					}
+
+					//sync with local storage
+					app.store.set('regionView', app._global.regionView);
+
+					//re-render views
+					if(app._global.regionView.length){
+
+						_.each(app._global.regionView, function(obj, index){
+							var regionObj, regionName;
+							//find which region in app._global.regions representing current region, save content in it;
+							//consult app._global.tolerance for acceptable margin of errors.
+							regionObj = _.find(app._global.regions, function(coords){
+								return (obj.top >= coords.top - app._global.tolerance && obj.top <= coords.top + app._global.tolerance) &&
+										(obj.bottom >= coords.bottom - app._global.tolerance && obj.bottom <= coords.bottom + app._global.tolerance) &&
+										(obj.left >= coords.left - app._global.tolerance && obj.left <= coords.left + app._global.tolerance) &&
+										(obj.right >= coords.right - app._global.tolerance && obj.right <= coords.right + app._global.tolerance);
+							});
+
+							//get region name
+							if(regionObj)
+								regionName = regionObj.regionName;
+							//trim out the region has no match
+							else{
+								obj = undefined;
+								return;
+							} 
+
+							if(regionName)
+								//load view into the region
+								that.getViewIn('generate-view').spray(that.$el.find('[region="' + regionName + '"]'), obj.view, {
+									data: obj.data
+								});
+						});
+					}
+
+					//trim out undefined just assigned
+					app._global.regionView = _.compact(app._global.regionView);
 				})
 				.fail(function(error){
 					app.notify('Error!', 'Generating error.', 'error', {icon: 'fa fa-reddit-alien'});
@@ -641,9 +697,6 @@
 			this.$el.find('.side-menu-list .current-name-holder').addClass('flash');
 		},
 		//---------------------------------- app coops ----------------------------------//
-		onLayoutResetted: function(){//when user adding/remving lines after generated 
-			this.resetLayout(true);
-		},
 		onActiveTemplateDeleted: function(){
 			this.reset();
 		},
@@ -681,6 +734,12 @@
 			this.flashCurrent();
 		},
 		//---------------------------------- view coops ----------------------------------//
+		onOperateLineAfterGenerate: function(){
+			this.generateLayout();
+		},
+		onLayoutResetted: function(){//when user adding/remving lines after generated 
+			this.resetLayout(true);
+		},
 		onLayoutAdjusted: function(){//dragging end points
 			var that = this;
 			//only response if some layout has already been generated
@@ -707,11 +766,26 @@
 		onViewMenuAddView: function(obj){
 			var content = obj.content,
 				data = obj.data,
-				method = obj.method;
+				method = obj.method,
+				$currentRegion = this.$el.find('[region="' + this.currentRegion + '"]'),
+				width = this.$el.width(),
+				height = this.$el.height();
 
-			this.getViewIn('generate-view').spray(this.$el.find('[region="' + this.currentRegion + '"]'), content, {
+			//get bounding box for current region
+			var boundingBox = $currentRegion[0].getBoundingClientRect();
+
+			//trim bounding box into percentage
+			var top = trimNumber(boundingBox.top / height * 100),
+				bottom = trimNumber(boundingBox.bottom / height * 100),
+				left = trimNumber(boundingBox.left / width * 100),
+				right = trimNumber(boundingBox.right / width * 100);
+			
+			//var regionName = regionObj.name;
+
+			this.getViewIn('generate-view').spray($currentRegion, content, {
 				data: data
 			});
+
 			//hide menu
 			this.$el.find('.view-menu').addClass('hidden');
 			//remove active class on region
@@ -720,14 +794,20 @@
 			this.adjustRegionCover(false);
 			
 			//add region to list
-			app._global.regionView[this.currentRegion] = {
+			app._global.regionView.push({
 				view: content,
 				data: data,
-				method: method
-			};
+				method: method,
+				top: top,
+				bottom: bottom,
+				left: left,
+				right: right,
+				regionName: $currentRegion.attr('region')
+			});
+
 			//sync it in local storage
 			app.store.remove('regionView');
-			app.store.set('regionView', $.extend(true, {}, app._global.regionView));
+			app.store.set('regionView', app._global.regionView);
 		},
 		onSideMenuClicked: function(){
 			//hide view menu
@@ -785,6 +865,11 @@
 			this.generateLayout(false, true);
 		},
 	});
+
+	//trim number only leave two digits after decimal point
+	function trimNumber(number){
+		return parseFloat(number.toFixed(2));
+	}
 
 	function checkContained(arr, obj, key){
 		var flag = false;

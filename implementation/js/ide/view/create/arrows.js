@@ -85,15 +85,21 @@
 			}
 		},
 		onPointLayoutResetConfirmed: function($anchor){
-			this.coop('layout-resetted');
+			//this.coop('layout-resetted');
+			//delete selected line
 			this.confirmDelete($anchor);
+			//update layout, keep as much information as possible
+			this.coop('operate-line-after-generate');
 		},
 		confirmDelete: function($self){
 			if($self.find('i').hasClass('deletable')){//deletable
 				var line = this.lines[$self.data('direction')];
+				//delete line
 				this.deleteLine(line, $self.data('direction'));
 
+				//sync local storage data
 				this.coop('sync-local');
+
 			}else{//NOT deletable
 				app.notify('Cannot Delete', 'This line cannot be deleted!', 'error', {icon: 'fa fa-reddit-alien'});
 			}
@@ -184,6 +190,7 @@
 			//remove current line
 			removeLineFromCollection(line.id, (position === 'up' || position === 'down') ? 'v' : 'h', true);
 
+			//!!!!!!need to do something here
 			app.coop('line-deleted');
 
 			//if point still exists re-color, if not hide

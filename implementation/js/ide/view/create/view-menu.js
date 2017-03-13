@@ -182,7 +182,7 @@
 
 				//for future use, like svg and editors
 				//else if....
-				
+
 				//coop event to spray view in selected region
 				this.coop('view-menu-add-view', {
 					content: content,
@@ -193,7 +193,7 @@
 				});
 			},
 			'active-menu-tab': function($self){
-				var name = $self.attr('tab'),
+				var name = $self.attr('tab'),//tab intend to be activated
 					current = $self.parent().find('.active').attr('tab'),
 					$el;
 				//add active class on tabs

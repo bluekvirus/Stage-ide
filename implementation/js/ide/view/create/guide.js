@@ -89,8 +89,12 @@
 				this.confirmAdd();
 		},
 		onLineLayoutResetConfirmed: function(){
-			this.coop('layout-resetted');
-			this.confirmAdd();	
+			//this.coop('layout-resetted');
+			
+			//add new line
+			this.confirmAdd();
+			//coop event, keep as much information as possible
+			this.coop('operate-line-after-generate');
 		},
 		confirmAdd: function(){
 			var $horizontal = this.$el.find('.horizontal-line'),
