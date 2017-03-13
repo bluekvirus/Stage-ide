@@ -262,7 +262,16 @@ body,
 								font-weight: 600;
 							}
 							&.active {
-								background-color: @border;
+								color: #fff;
+								background-color: #000;
+							}
+							&.linked {
+								background-color: @brand-success;
+								color: #fff;
+								&.active {
+									color: #fff;
+									background-color: #000;//for overwrite linked
+								}
 							}
 						}
 					}

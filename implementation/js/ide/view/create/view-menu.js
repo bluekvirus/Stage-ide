@@ -24,7 +24,7 @@
 			this.initialSvgSetup = 'function(paper){\r\n\t\r\n}';
 
 			//initial textarea setup for editors
-			this.initialEditorSetup = '{\r\n\ttype: ""\r\n}';
+			this.initialEditorSetup = '{\r\n\t"type": "text"\r\n}';
 
 			//flag indicating which editing mode is on
 			this.viewEditing = true;
@@ -204,6 +204,24 @@
 				//show actived
 				this.$el.find('.view-menu-middle-holder .tab-content[content="' + name + '"]').removeClass('hidden');
 
+				//if current is view but with NO selection, and switching to svg or editor. send notification and return
+				if(this.viewEditing && !this.activatedView) return;
+
+				//when switching tabs away from svgs and editors, should store the configuration of svgs and editors
+				if(current === 'svg'){
+					$el = this.$el.find('.svg-list .svg-list-item.active');
+
+					//save
+					if($el.text() && this.$el.find('#svg-editor').val())
+						this.tempSvg[$el.text()] = this.$el.find('#svg-editor').val();
+				}else if(current === 'editor'){
+					$el = this.$el.find('.editor-list .editor-list-item.active');
+					
+					//save
+					if($el.text() && this.$el.find('#editors-editor').val())
+						this.tempEditor[$el.text()] = this.$el.find('#editors-editor').val();
+				}
+
 				//if switch to svg or editors, scan html editor, if raw enabled
 				if(name === 'svg' || name === 'editor'){
 					var $htmlEditor = this.$el.find('#html-editor'),
@@ -220,19 +238,6 @@
 					
 					//add svg and edtior
 					this.addSvgEditorTags(svgs, editors);
-				}
-
-				//when switching tabs away from svgs and editors, should store the configuration of svgs and editors
-				if(current === 'svg'){
-					$el = this.$el.find('.svg-list .svg-list-item.active');
-
-					//save
-					this.tempSvg[$el.text()] = this.$el.find('#svg-editor').val();
-				}else if(current === 'editor'){
-					$el = this.$el.find('.editor-list .editor-list-item.active');
-
-					//save
-					this.tempEditor[$el.text()] = this.$el.find('#editors-editor').val();
 				}
 			},
 			'load-svg': function($self){
@@ -256,53 +261,113 @@
 		},
 		//----------------------------------------- helpers -----------------------------------------//
 		addSvgEditorTags: function(svgs, editors){
-			var that = this;
+			var that = this,
+				firstFlag = false,
+				temp = {};
+			
+			//remove active and linked classes from items
+			this.$el.find('.svg-list .svg-list-item').removeClass('active linked');
+			this.$el.find('.editor-list .editor-list-item').removeClass('active linked');
+			this.$el.find('#svg-editor').val('');
+			this.$el.find('#editors-editor').val('');
 
-			if(svgs && svgs.length){
+			//=========== svgs ==========//
+			if(svgs){
 				//empty old list
 				this.$el.find('.svg-content .svg-list').empty();
+				//trim out falsy element
+				svgs = _.compact(svgs);
+				//trim every element of svgs array
+				if(svgs.length){
+					_.map(svgs, function(svgStr, index){
+						svgs[index] = svgStr.replace('svg=', '').replace(/\"/g, '');
+					});
 
-				_.each(svgs, function(svgStr, index){
-					var str = svgStr.replace('svg=', '').replace(/\"|/g, '');
+					//extend this.tempSvg with svgs
+					temp = {};
+					_.each(svgs, function(svgStr, index){ temp[svgStr] = ''; });
+					this.tempSvg = _.extend(temp, this.tempSvg);
+				}
+
+				firstFlag = false;
+				//show every stored svgs
+				_.each(this.tempSvg, function(config, str){
+
 					var $temp = $('<div class="svg-list-item" data-toggle="tooltip" data-placement="top" title="' + str + '" action="load-svg"><span>' + str + '</span></div>');
 
 					if(!that.tempSvg[str])
 						that.tempSvg[str] = that.initialSvgSetup;
-
-					if(index === 0){
+					console.log(svgs);
+					//initial active first
+					if(!firstFlag &&  _.contains(svgs, str)){
 						//active
 						$temp.addClass('active');
 
 						//change svg editor content
 						that.$el.find('#svg-editor').val(that.tempSvg[str]);
+
+						//flip flag
+						firstFlag = true;
 					}
-						
+
+					//add linked class if it contains in svgs array
+					if(svgs.length && _.contains(svgs, str)){
+						$temp.addClass('linked');
+					}
+
 					that.$el.find('.svg-content .svg-list').append($temp);
 				});
 			}
-
-			if(editors && editors.length){
+			
+			//=========== editors ==========//
+			if(editors){
 				//empty old list
 				this.$el.find('.editor-content .editor-list').empty();
+				//trim out falsy elements
+				editors = _.compact(editors);
+				//trim every element of editors array
+				if(editors && editors.length){
+					_.map(editors, function(editorStr, index){
+						editors[index] = editorStr.replace('editor=', '').replace(/\"/g, '');
+					});
 
-				_.each(editors, function(editorStr, index){	
-					var str = editorStr.replace('editor=', '').replace(/\"|/g, '');
-					var $temp = $('<div class="svg-list-item" data-toggle="tooltip" data-placement="top" title="' + str + '" action="load-editor"><span>' + str + '</span></div>');
+					//extend this.tempEditor with editors
+					temp = {};
+					_.each(editors, function(editorStr, index){ temp[editorStr] = ''; });
+					this.tempEditor = _.extend(temp, this.tempEditor);
+				}
+
+				firstFlag = false;
+				//show every stored editors
+				_.each(this.tempEditor, function(config, str){	
+					
+					var $temp = $('<div class="editor-list-item" data-toggle="tooltip" data-placement="top" title="' + str + '" action="load-editor"><span>' + str + '</span></div>');
 
 					//if not previously stored, give an intial option
 					if(!that.tempEditor[str])
 						that.tempEditor[str] = that.initialEditorSetup;
 
-					if(index === 0){
+					//initial active first
+					if(!firstFlag && _.contains(editors, str)){
+						//active
 						$temp.addClass('active');
 
-						//change svg editor content
+						//change editors editor content
 						that.$el.find('#editors-editor').val(that.tempEditor[str]);
+
+						//flip flag
+						firstFlag = true;
+					}
+
+					//add linked class if it contains in editors array
+					if(editors && editors.length && _.contains(editors, str)){
+						$temp.addClass('linked');
 					}
 
 					that.$el.find('.editor-content .editor-list').append($temp);
 				});
 			}
+			
 		},
 		viewRawSwitch: function(view){
 			var that = this;

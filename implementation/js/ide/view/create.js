@@ -179,7 +179,7 @@
 							$target = $target.data().region.parentCt.parentRegion.$el;
 							that.currentRegion = parentName;
 						}
-						
+
 						$target.addClass('active');	
 						that.adjustRegionCover(true, $target);
 
@@ -764,9 +764,17 @@
 			this.adjustRegionCover(false);
 		},
 		onViewMenuAddView: function(obj){
+
+			//translate each editor configuration from string to object
+			if(obj.editors)
+				_.each(obj.editors, function(str, name){
+					obj.editors[name] = JSON.parse(str);
+				});
+
 			var content = obj.content,
 				data = obj.data,
 				method = obj.method,
+				editors = obj.editors,
 				$currentRegion = this.$el.find('[region="' + this.currentRegion + '"]'),
 				width = this.$el.width(),
 				height = this.$el.height();
@@ -783,7 +791,8 @@
 			//var regionName = regionObj.name;
 
 			this.getViewIn('generate-view').spray($currentRegion, content, {
-				data: data
+				data: data,
+				editors: editors
 			});
 
 			//hide menu
@@ -798,6 +807,7 @@
 				view: content,
 				data: data,
 				method: method,
+				editors: editors, ///!!!!!!here
 				top: top,
 				bottom: bottom,
 				left: left,
