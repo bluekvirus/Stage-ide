@@ -391,24 +391,7 @@
 					});
 
 					//if adjusting, since the region names will not change, update the coords should be enough
-					if(adjusting){
-						//update app._global.regionViews' coordinates based on regionName
-						_.map(app._global.regionView, function(rv){
-							//find corresponding region
-							var region = _.find(app._global.regions, function(r){ return r.regionName === rv.regionName; });
-
-							//update regionView's coordinate based on newly resized region
-							rv.top = region.top;
-							rv.bottom = region.bottom;
-							rv.left = region.left;
-							rv.right = region.right;
-						});
-					}
-					//only show notifications when not adjusting
-					else{
-						// that.generateLock();
-						// that.generateUnmesh();
-						
+					if(!adjusting){
 						//show notification
 						app.notify('Generated!', 'Layout has been generated.', 'ok', {icon: 'fa fa-fort-awesome'});
 						//object to store region-view configuration globally, empty array if it does not exist.
@@ -433,8 +416,10 @@
 							});
 
 							//get region name
-							if(regionObj)
+							if(regionObj){
 								regionName = regionObj.regionName;
+							}
+								
 							//trim out the region has no match
 							else{
 								obj = undefined;
@@ -740,10 +725,233 @@
 		onLayoutResetted: function(){//when user adding/remving lines after generated 
 			this.resetLayout(true);
 		},
-		onLayoutAdjusted: function(){//dragging end points
+		onLayoutAdjusted: function($point){//dragging end points
 			var that = this;
 			//only response if some layout has already been generated
 			if(!this.generated) return;
+
+			//debug && test
+			var pointId = $point.attr('point-id'),
+				point = app._global.endPoints[pointId],
+				connectedRegion = {},
+				nextCoordinates = {},
+				width = this.$el.width(),
+				height = this.$el.height(),
+				temp;
+
+			//get related points' coordinates
+			if(point.left)
+				nextCoordinates.left = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left].x;
+			if(point.right)
+				nextCoordinates.right = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.right; })).right].x;
+			if(point.top)
+				nextCoordinates.top = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top].y;
+			if(point.bottom)
+				nextCoordinates.bottom = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.bottom; })).bottom].y;
+
+			//check whether it has all the corrdinates, the length should be 4
+			if(_.keys(nextCoordinates).length < 4){
+				//no left
+				if(!nextCoordinates.left && nextCoordinates.left !== 0){//0 is falsy. caveat.
+					//top---->left
+					//top
+					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
+					//check whether has left
+					while(!temp.left){
+						temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
+					}
+					//now temp has left, get coordinates
+					nextCoordinates.left = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left].x;
+				}
+				//no right
+				else if(!nextCoordinates.right && nextCoordinates.right !== 0){
+					//top---->right
+					//top
+					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
+					//check whether has right
+					while(!temp.right){
+						temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
+					}
+					//now temp has right, get coordinates
+					nextCoordinates.right = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).right].x;
+				}
+				//no top
+				else if(!nextCoordinates.top && nextCoordinates.top !== 0){
+					//left---->top
+					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
+					//check whether has right
+					while(!temp.top){
+						temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
+					}
+					//now temp has right, get coordinates
+					nextCoordinates.top = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top].y;
+				}
+				//no bottom
+				else if(!nextCoordinates.bottom && nextCoordinates.bottom !== 0){
+					//left---->bottom
+					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
+					//check whether has right
+					while(!temp.bottom){
+						temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
+					}
+					//now temp has right, get coordinates
+					nextCoordinates.bottom = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).bottom].y;
+				}
+			}
+
+			//traverse all the direction to see whether all the coordinates has been extended throughly
+			var coord1, coord2;
+			//top, left---->top, right---->top
+			if(point.left){
+				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
+				while(!temp.top){
+					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
+				}
+				coord1 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).y1;
+			}
+
+			if(point.right){
+				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.right; })).right];
+				while(!temp.top){
+					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).right];
+				}
+				coord2 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).y1;
+			}
+
+			if(coord1 < nextCoordinates.top)
+				nextCoordinates.top = coord1;
+			if(coord2 < nextCoordinates.top)
+				nextCoordinates.top = coord2;
+
+			//bottom, left---->bottom, right---->bottom
+			if(point.left){
+				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
+				while(!temp.bottom){
+					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
+				}
+				coord1 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).y2;
+			}
+
+			if(point.right){
+				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.right; })).right];
+				while(!temp.bottom){
+					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).right];
+				}
+				coord2 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).y2;
+			}
+			
+			if(coord1 > nextCoordinates.bottom)
+				nextCoordinates.bottom = coord1;
+			if(coord2 > nextCoordinates.bottom)
+				nextCoordinates.bottom = coord2;
+			
+			//left, top---->left, bottom---->right
+			if(point.top){
+				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
+				while(!temp.left){
+					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
+				}
+				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).x1;
+			}
+
+			if(point.bottom){
+				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.bottom; })).bottom];
+				while(!temp.left){
+					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).bottom];
+				}
+				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).x1;
+			}
+			
+			if(coord1 < nextCoordinates.left)
+				nextCoordinates.left = coord1;
+			if(coord2 < nextCoordinates.left)
+				nextCoordinates.left = coord2;
+
+			//right, top---->right, bottom---->right
+			if(point.top){
+				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
+				while(!temp.right){
+					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
+				}
+				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).x2;
+			}
+
+			if(point.bottom){
+				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.bottom; })).bottom];
+				while(!temp.right){
+					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).bottom];
+				}
+				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).x2;
+			}
+			
+			if(coord1 > nextCoordinates.right)
+				nextCoordinates.right = coord1;
+			if(coord2 > nextCoordinates.right)
+				nextCoordinates.right = coord2;
+
+			console.log(nextCoordinates);
+
+			//search regionView adjust accordingly
+			_.each(app._global.regionView, function(rv){
+				//top left
+				if(
+					(rv.top >= nextCoordinates.top - app._global.tolerance && rv.top <= nextCoordinates.top + app._global.tolerance) &&
+					(rv.left >= nextCoordinates.left - app._global.tolerance && rv.left <= nextCoordinates.left + app._global.tolerance)
+				){
+					if(point.top && point.left)//4 regions
+						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: point.y, right: point.x});
+					
+					else if(!point.top && point.left)//3 regions, no top line
+						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: point.y, right: nextCoordinates.right});
+					
+					else if(point.top && !point.left)//3 regions, no left line
+						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: point.x});	
+				}
+				//top right
+				else if(
+					(rv.top >= nextCoordinates.top - app._global.tolerance && rv.top <= nextCoordinates.top + app._global.tolerance) &&
+					(rv.right >= nextCoordinates.right - app._global.tolerance && rv.right <= nextCoordinates.right + app._global.tolerance)
+				){
+					if(point.top && point.right)//4 regions
+						syncAssignment(rv, {top: nextCoordinates.top, left: point.x, bottom: point.y, right: nextCoordinates.right});
+					
+					else if(!point.top && point.right)//3regions, no top line
+						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: point.y, right: nextCoordinates.right});
+					
+					else if(point.top && !point.right)//3 regions, no right line
+						syncAssignment(rv, {top: nextCoordinates.top, left: point.x, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
+				}
+				//bottom left
+				else if(
+					(rv.bottom >= nextCoordinates.bottom - app._global.tolerance && rv.bottom <= nextCoordinates.bottom + app._global.tolerance) &&
+					(rv.left >= nextCoordinates.left - app._global.tolerance && rv.left <= nextCoordinates.left + app._global.tolerance)
+				){
+					if(point.bottom && point.left)//4 regions
+						syncAssignment(rv, {top: point.y, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: point.x});
+
+					else if(!point.bottom && point.left)//3 regions, no bottom line
+						syncAssignment(rv, {top: point.y, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
+					
+					else if(point.bottom && !point.left)//3 regions, no left line
+						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: point.x});	
+				}
+				//bottom right
+				else if(
+					(rv.bottom >= nextCoordinates.bottom - app._global.tolerance && rv.bottom <= nextCoordinates.bottom + app._global.tolerance) &&
+					(rv.right >= nextCoordinates.right - app._global.tolerance && rv.right <= nextCoordinates.right + app._global.tolerance)
+				){
+					if(point.bottom && point.right)//4 regions
+						syncAssignment(rv, {top: point.y, left: point.x, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
+
+					else if(!point.bottom && point.right)//3 regions, no bottom line
+						syncAssignment(rv, {top: point.y, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
+
+					else if(point.bottom && !point.right)//3 regions, no right line
+						syncAssignment(rv, {top: nextCoordinates.top, left: point.x, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
+				}
+			});
+
+			console.log(app._global.regionView);
 
 			//reset layout
 			this.generateLayout(true);
@@ -763,18 +971,27 @@
 			//hide region-cover
 			this.adjustRegionCover(false);
 		},
-		onViewMenuAddView: function(obj){
-
+		onViewMenuAddView: function(configObj){
+			var obj = $.extend(true, {}, configObj);
+			
 			//translate each editor configuration from string to object
 			if(obj.editors)
 				_.each(obj.editors, function(str, name){
 					obj.editors[name] = JSON.parse(str);
 				});
 
+			//translate each svg configuration from string to function
+			//!!Caveat: using eval here, might be dangerours
+			if(obj.svgs)
+				_.each(obj.svgs, function(str, name){
+					obj.svgs[name] = new Function("return " + str)();
+				});
+			
 			var content = obj.content,
 				data = obj.data,
 				method = obj.method,
 				editors = obj.editors,
+				svgs = obj.svgs,
 				$currentRegion = this.$el.find('[region="' + this.currentRegion + '"]'),
 				width = this.$el.width(),
 				height = this.$el.height();
@@ -792,7 +1009,8 @@
 
 			this.getViewIn('generate-view').spray($currentRegion, content, {
 				data: data,
-				editors: editors
+				editors: editors,
+				svg: svgs,
 			});
 
 			//hide menu
@@ -802,17 +1020,27 @@
 			//hide region-cover
 			this.adjustRegionCover(false);
 			
+			//clean the assignment contains the same coordinates
+			var assigned = _.find(app._global.regionView, function(rv){
+				return (rv.top >= top - app._global.tolerance && rv.top <= top + app._global.tolerance) &&
+						(rv.bottom >= bottom - app._global.tolerance && rv.bottom <= bottom + app._global.tolerance) &&
+						(rv.left >= left - app._global.tolerance && rv.left <= left + app._global.tolerance) &&
+						(rv.right >= right - app._global.tolerance && rv.right <= right + app._global.tolerance);
+			});
+			//remove
+			if(assigned)
+				app._global.regionView = _.without(app._global.regionView, assigned);
+
 			//add region to list
 			app._global.regionView.push({
 				view: content,
 				data: data,
 				method: method,
-				editors: editors, ///!!!!!!here
+				editors: editors,
 				top: top,
 				bottom: bottom,
 				left: left,
-				right: right,
-				regionName: $currentRegion.attr('region')
+				right: right
 			});
 
 			//sync it in local storage
@@ -896,6 +1124,13 @@
 			}
 		});
 		return flag;
+	}
+
+	function syncAssignment(regionView, coords){
+		regionView.top = coords.top;
+		regionView.left = coords.left;
+		regionView.right = coords.right;
+		regionView.bottom = coords.bottom;
 	}
 
 })(Application);

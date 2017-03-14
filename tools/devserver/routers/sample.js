@@ -25,6 +25,15 @@ module.exports = function(server){
 		//res.format({ 'application/json': fn(){res.send()}, 'text/html': fn(){res.send()}, ...})
 	});
 
+	//a. empty api
+	router.get('/empty', router.permission('read'), function(req, res, next){
+		res.json({});
+		//res.send()
+		//res.sendFile()
+		//res.download()
+		//res.format({ 'application/json': fn(){res.send()}, 'text/html': fn(){res.send()}, ...})
+	});
+
 	//b. file upload
 	//use truncate -s 100M dummy.pdf to test on linux
 	router.post('/file', function(req, res, next){

@@ -86,6 +86,12 @@
 		},
 		onPointLayoutResetConfirmed: function($anchor){
 			//this.coop('layout-resetted');
+			//console.log($anchor);
+			//check whether generated
+			if(this.parentCt.generated){
+				//delete related the assignment in regionView
+			}
+
 			//delete selected line
 			this.confirmDelete($anchor);
 			//update layout, keep as much information as possible
