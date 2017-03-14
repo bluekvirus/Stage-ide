@@ -23,6 +23,10 @@
 		//	...
 		},
 
+		onReady: function(){
+			console.log('templates', this.getTemplate(true));
+		},
+
 	});
 
 })(Application);

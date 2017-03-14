@@ -140,6 +140,10 @@
 		mousedownCallback: function(e, $node, $body){
 			//hide side menu if necesary
 			var $trigger = this.parentCt.$el.find('.side-menu-trigger');
+
+			//save original point object
+			var $point = $(e.target);
+
 			if($trigger.hasClass('active'))
 				this.parentCt.toggleSideMenu($trigger);
 			
@@ -203,7 +207,7 @@
 				}
 
 				//trigger coop event to re-generate layout and views
-				that.coop('layout-adjusted');
+				that.coop('layout-adjusted', $point);
 				
 			}, 75))
 			.one('mouseup', function(e){

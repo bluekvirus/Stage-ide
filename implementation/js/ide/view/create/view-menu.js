@@ -126,6 +126,9 @@
 				}
 			},
 			'existing-view-click': function($self){
+				//clean up stored svgs and editors
+				this.tempSvg = {};
+				this.tempEditor = {};
 				//only toggles active classes, now only add existing class
 				$self.siblings().removeClass('active');
 				$self.addClass('active');
@@ -297,7 +300,7 @@
 
 					if(!that.tempSvg[str])
 						that.tempSvg[str] = that.initialSvgSetup;
-					console.log(svgs);
+					
 					//initial active first
 					if(!firstFlag &&  _.contains(svgs, str)){
 						//active
