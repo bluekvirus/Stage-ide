@@ -952,7 +952,6 @@
 			});
 
 			console.log(app._global.regionView);
-
 			//reset layout
 			this.generateLayout(true);
 		},
