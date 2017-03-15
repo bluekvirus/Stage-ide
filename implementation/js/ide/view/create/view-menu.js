@@ -15,7 +15,7 @@
 		
 		initialize: function(){
 			//temp storage for storing svgs
-			this.tempSvg = {};
+			this.tempSvg = {}; //!!!!!!!!!!!!!!!!!!!!!!!!!!! store view configurations separately
 
 			//temp storage for storing editors
 			this.tempEditor = {};

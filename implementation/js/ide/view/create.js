@@ -17,9 +17,6 @@
 			this.generated = false;
 			//meta to store currently focusing on which region
 			this.currentRegion = '';
-
-			//store regions and it's boundary points' id
-			this.generatedRegions = [];
 		},
 		onReady: function(){
 			var that = this;
@@ -436,8 +433,6 @@
 								return;
 							}
 
-							console.log(obj.svg);
-
 							if(regionName)
 								//load view into the region
 								that.getViewIn('generate-view').spray(that.$el.find('[region="' + regionName + '"]'), obj.view, {
@@ -763,7 +758,8 @@
 			this.adjustRegionCover(false);
 		},
 		onViewMenuAddView: function(configObj){
-			var obj = $.extend(true, {}, configObj);
+			var obj = $.extend(true, {}, configObj),
+				originalSvg; //for saving original svgs as string
 			
 			//translate each editor configuration from string to object
 			if(obj.editors)
@@ -773,11 +769,15 @@
 
 			//translate each svg configuration from string to function
 			//!!Caveat: using eval here, might be dangerours
-			if(obj.svg)
+			if(obj.svg){
+				//save a copy
+				originalSvg = _.clone(obj.svg);
+				//Functionfy lol
 				_.each(obj.svg, function(str, name){
 					obj.svg[name] = new Function("return " + str)();
 				});
-			
+			}
+				
 			var content = obj.content,
 				data = obj.data,
 				method = obj.method,
@@ -823,7 +823,7 @@
 				data: data,
 				method: method,
 				editors: editors,
-				svg: svg
+				svg: originalSvg
 			}));
 
 			//sync it in local storage
