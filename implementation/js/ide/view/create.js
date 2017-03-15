@@ -17,6 +17,9 @@
 			this.generated = false;
 			//meta to store currently focusing on which region
 			this.currentRegion = '';
+
+			//store regions and it's boundary points' id
+			this.generatedRegions = [];
 		},
 		onReady: function(){
 			var that = this;
@@ -59,7 +62,7 @@
 			//consult local storage whether side menu used to be opened or not
 			if(app.store.get('__opened__')){
 				that.toggleSideMenu(true);
-			}
+			}			
 
 			//on mouse move use app.coop to show the guide lines
 			this.$el.on('mousemove', function(e){
@@ -155,9 +158,6 @@
 					if($target.hasClass('view-menu'))
 						return;		
 
-					//check whether parent region already be assigned, if yes change current region.
-					//console.log(that.getViewIn('generate-view').getRegion(that.currentRegion) && that.getViewIn('generate-view').getRegion(that.currentRegion).parentCt.parentRegion);
-
 					//setup current region
 					that.currentRegion = $target.attr('region') || that.currentRegion;
 					
@@ -187,10 +187,23 @@
 						that.adjustRegionCover(true);
 					}
 
+					//get current region boundingBox
+					var boundingRect = _.clone((that.$el.find('[region="' + that.currentRegion + '"]')[0]).getBoundingClientRect());
+					boundingRect = _.pick(boundingRect, 'top', 'left', 'right', 'bottom');
+					var points = getBoundingPoints(false, boundingRect, that.$el.width(), that.$el.height());
+					//find assignment if exists
+					var assigned = _.find(app._global.regionView, function(rv){
+						return rv.topLeft === points.topLeft &&
+								rv.topRight === points.topRight &&
+								rv.bottomLeft === points.bottomLeft &&
+								rv.bottomRight === points.bottomRight;
+					});
+
 					app.coop('view-menu-show', {
 						$target: $target, //for getting target region
 						e: e, //for e.pageX and e.pageY
-						currentRegion: that.currentRegion //currently focused region
+						currentRegion: that.currentRegion, //currently focused region
+						method: assigned ? assigned.method : 'view'//method
 					});
 
 					//return immediately
@@ -380,14 +393,11 @@
 
 					_.each(regions, function(el){
 						var boundingRect = _.clone(el.getBoundingClientRect());//make a copy
+						//only pick 4 corners
+						boundingRect = _.pick(boundingRect, 'top', 'bottom', 'left', 'right');
 
-						app._global.regions.push({
-							top: trimNumber(boundingRect.top / height * 100), //transfer it into percentage
-							left: trimNumber(boundingRect.left / width * 100),
-							bottom: trimNumber(boundingRect.bottom / height * 100),
-							right: trimNumber(boundingRect.right / width * 100),
-							regionName: $(el).attr('region') //region name for later reference
-						});
+						//push marked regions
+						app._global.regions.push(getBoundingPoints(el, boundingRect, width, height));
 					});
 
 					//if adjusting, since the region names will not change, update the coords should be enough
@@ -408,11 +418,11 @@
 							var regionObj, regionName;
 							//find which region in app._global.regions representing current region, save content in it;
 							//consult app._global.tolerance for acceptable margin of errors.
-							regionObj = _.find(app._global.regions, function(coords){
-								return (obj.top >= coords.top - app._global.tolerance && obj.top <= coords.top + app._global.tolerance) &&
-										(obj.bottom >= coords.bottom - app._global.tolerance && obj.bottom <= coords.bottom + app._global.tolerance) &&
-										(obj.left >= coords.left - app._global.tolerance && obj.left <= coords.left + app._global.tolerance) &&
-										(obj.right >= coords.right - app._global.tolerance && obj.right <= coords.right + app._global.tolerance);
+							regionObj = _.find(app._global.regions, function(bounds){
+								return obj.topLeft === bounds.topLeft &&
+										obj.topRight === bounds.topRight &&
+										obj.bottomLeft === bounds.bottomLeft &&
+										obj.bottomRight === bounds.bottomRight;
 							});
 
 							//get region name
@@ -422,14 +432,18 @@
 								
 							//trim out the region has no match
 							else{
-								obj = undefined;
+								app._global.regionView[index] = undefined;
 								return;
-							} 
+							}
+
+							console.log(obj.svg);
 
 							if(regionName)
 								//load view into the region
 								that.getViewIn('generate-view').spray(that.$el.find('[region="' + regionName + '"]'), obj.view, {
-									data: obj.data
+									data: obj.data,
+									editors: obj.editors,
+									svg: obj.svg
 								});
 						});
 					}
@@ -729,229 +743,7 @@
 			var that = this;
 			//only response if some layout has already been generated
 			if(!this.generated) return;
-
-			//debug && test
-			var pointId = $point.attr('point-id'),
-				point = app._global.endPoints[pointId],
-				connectedRegion = {},
-				nextCoordinates = {},
-				width = this.$el.width(),
-				height = this.$el.height(),
-				temp;
-
-			//get related points' coordinates
-			if(point.left)
-				nextCoordinates.left = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left].x;
-			if(point.right)
-				nextCoordinates.right = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.right; })).right].x;
-			if(point.top)
-				nextCoordinates.top = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top].y;
-			if(point.bottom)
-				nextCoordinates.bottom = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.bottom; })).bottom].y;
-
-			//check whether it has all the corrdinates, the length should be 4
-			if(_.keys(nextCoordinates).length < 4){
-				//no left
-				if(!nextCoordinates.left && nextCoordinates.left !== 0){//0 is falsy. caveat.
-					//top---->left
-					//top
-					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
-					//check whether has left
-					while(!temp.left){
-						temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
-					}
-					//now temp has left, get coordinates
-					nextCoordinates.left = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left].x;
-				}
-				//no right
-				else if(!nextCoordinates.right && nextCoordinates.right !== 0){
-					//top---->right
-					//top
-					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
-					//check whether has right
-					while(!temp.right){
-						temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
-					}
-					//now temp has right, get coordinates
-					nextCoordinates.right = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).right].x;
-				}
-				//no top
-				else if(!nextCoordinates.top && nextCoordinates.top !== 0){
-					//left---->top
-					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
-					//check whether has right
-					while(!temp.top){
-						temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
-					}
-					//now temp has right, get coordinates
-					nextCoordinates.top = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top].y;
-				}
-				//no bottom
-				else if(!nextCoordinates.bottom && nextCoordinates.bottom !== 0){
-					//left---->bottom
-					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
-					//check whether has right
-					while(!temp.bottom){
-						temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
-					}
-					//now temp has right, get coordinates
-					nextCoordinates.bottom = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).bottom].y;
-				}
-			}
-
-			//traverse all the direction to see whether all the coordinates has been extended throughly
-			var coord1, coord2;
-			//top, left---->top, right---->top
-			if(point.left){
-				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
-				while(!temp.top){
-					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
-				}
-				coord1 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).y1;
-			}
-
-			if(point.right){
-				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.right; })).right];
-				while(!temp.top){
-					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).right];
-				}
-				coord2 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).y1;
-			}
-
-			if(coord1 < nextCoordinates.top)
-				nextCoordinates.top = coord1;
-			if(coord2 < nextCoordinates.top)
-				nextCoordinates.top = coord2;
-
-			//bottom, left---->bottom, right---->bottom
-			if(point.left){
-				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.left; })).left];
-				while(!temp.bottom){
-					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).left];
-				}
-				coord1 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).y2;
-			}
-
-			if(point.right){
-				temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === point.right; })).right];
-				while(!temp.bottom){
-					temp = app._global.endPoints[(_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).right];
-				}
-				coord2 = (_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).y2;
-			}
 			
-			if(coord1 > nextCoordinates.bottom)
-				nextCoordinates.bottom = coord1;
-			if(coord2 > nextCoordinates.bottom)
-				nextCoordinates.bottom = coord2;
-			
-			//left, top---->left, bottom---->right
-			if(point.top){
-				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
-				while(!temp.left){
-					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
-				}
-				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).x1;
-			}
-
-			if(point.bottom){
-				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.bottom; })).bottom];
-				while(!temp.left){
-					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).bottom];
-				}
-				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.left; })).x1;
-			}
-			
-			if(coord1 < nextCoordinates.left)
-				nextCoordinates.left = coord1;
-			if(coord2 < nextCoordinates.left)
-				nextCoordinates.left = coord2;
-
-			//right, top---->right, bottom---->right
-			if(point.top){
-				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.top; })).top];
-				while(!temp.right){
-					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.top; })).top];
-				}
-				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).x2;
-			}
-
-			if(point.bottom){
-				temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === point.bottom; })).bottom];
-				while(!temp.right){
-					temp = app._global.endPoints[(_.find(app._global['vertical-line'], function(vline){ return vline.id === temp.bottom; })).bottom];
-				}
-				coord1 = (_.find(app._global['horizontal-line'], function(hline){ return hline.id === temp.right; })).x2;
-			}
-			
-			if(coord1 > nextCoordinates.right)
-				nextCoordinates.right = coord1;
-			if(coord2 > nextCoordinates.right)
-				nextCoordinates.right = coord2;
-
-			console.log(nextCoordinates);
-
-			//search regionView adjust accordingly
-			_.each(app._global.regionView, function(rv){
-				//top left
-				if(
-					(rv.top >= nextCoordinates.top - app._global.tolerance && rv.top <= nextCoordinates.top + app._global.tolerance) &&
-					(rv.left >= nextCoordinates.left - app._global.tolerance && rv.left <= nextCoordinates.left + app._global.tolerance)
-				){
-					if(point.top && point.left)//4 regions
-						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: point.y, right: point.x});
-					
-					else if(!point.top && point.left)//3 regions, no top line
-						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: point.y, right: nextCoordinates.right});
-					
-					else if(point.top && !point.left)//3 regions, no left line
-						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: point.x});	
-				}
-				//top right
-				else if(
-					(rv.top >= nextCoordinates.top - app._global.tolerance && rv.top <= nextCoordinates.top + app._global.tolerance) &&
-					(rv.right >= nextCoordinates.right - app._global.tolerance && rv.right <= nextCoordinates.right + app._global.tolerance)
-				){
-					if(point.top && point.right)//4 regions
-						syncAssignment(rv, {top: nextCoordinates.top, left: point.x, bottom: point.y, right: nextCoordinates.right});
-					
-					else if(!point.top && point.right)//3regions, no top line
-						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: point.y, right: nextCoordinates.right});
-					
-					else if(point.top && !point.right)//3 regions, no right line
-						syncAssignment(rv, {top: nextCoordinates.top, left: point.x, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
-				}
-				//bottom left
-				else if(
-					(rv.bottom >= nextCoordinates.bottom - app._global.tolerance && rv.bottom <= nextCoordinates.bottom + app._global.tolerance) &&
-					(rv.left >= nextCoordinates.left - app._global.tolerance && rv.left <= nextCoordinates.left + app._global.tolerance)
-				){
-					if(point.bottom && point.left)//4 regions
-						syncAssignment(rv, {top: point.y, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: point.x});
-
-					else if(!point.bottom && point.left)//3 regions, no bottom line
-						syncAssignment(rv, {top: point.y, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
-					
-					else if(point.bottom && !point.left)//3 regions, no left line
-						syncAssignment(rv, {top: nextCoordinates.top, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: point.x});	
-				}
-				//bottom right
-				else if(
-					(rv.bottom >= nextCoordinates.bottom - app._global.tolerance && rv.bottom <= nextCoordinates.bottom + app._global.tolerance) &&
-					(rv.right >= nextCoordinates.right - app._global.tolerance && rv.right <= nextCoordinates.right + app._global.tolerance)
-				){
-					if(point.bottom && point.right)//4 regions
-						syncAssignment(rv, {top: point.y, left: point.x, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
-
-					else if(!point.bottom && point.right)//3 regions, no bottom line
-						syncAssignment(rv, {top: point.y, left: nextCoordinates.left, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
-
-					else if(point.bottom && !point.right)//3 regions, no right line
-						syncAssignment(rv, {top: nextCoordinates.top, left: point.x, bottom: nextCoordinates.bottom, right: nextCoordinates.right});
-				}
-			});
-
-			console.log(app._global.regionView);
 			//reset layout
 			this.generateLayout(true);
 		},
@@ -981,36 +773,23 @@
 
 			//translate each svg configuration from string to function
 			//!!Caveat: using eval here, might be dangerours
-			if(obj.svgs)
-				_.each(obj.svgs, function(str, name){
-					obj.svgs[name] = new Function("return " + str)();
+			if(obj.svg)
+				_.each(obj.svg, function(str, name){
+					obj.svg[name] = new Function("return " + str)();
 				});
 			
 			var content = obj.content,
 				data = obj.data,
 				method = obj.method,
 				editors = obj.editors,
-				svgs = obj.svgs,
+				svg = obj.svg,
 				$currentRegion = this.$el.find('[region="' + this.currentRegion + '"]'),
 				width = this.$el.width(),
 				height = this.$el.height();
 
 			//get bounding box for current region
-			var boundingBox = $currentRegion[0].getBoundingClientRect();
-
-			//trim bounding box into percentage
-			var top = trimNumber(boundingBox.top / height * 100),
-				bottom = trimNumber(boundingBox.bottom / height * 100),
-				left = trimNumber(boundingBox.left / width * 100),
-				right = trimNumber(boundingBox.right / width * 100);
-			
-			//var regionName = regionObj.name;
-
-			this.getViewIn('generate-view').spray($currentRegion, content, {
-				data: data,
-				editors: editors,
-				svg: svgs,
-			});
+			var boundingRect = $currentRegion[0].getBoundingClientRect();
+			boundingRect = _.pick(boundingRect, 'top', 'bottom', 'left', 'right');
 
 			//hide menu
 			this.$el.find('.view-menu').addClass('hidden');
@@ -1018,29 +797,34 @@
 			this.$el.find('.region-generate-view .region.active').removeClass('active');
 			//hide region-cover
 			this.adjustRegionCover(false);
-			
+
+			var tempBoundingRect = getBoundingPoints(false, boundingRect, width, height);
 			//clean the assignment contains the same coordinates
 			var assigned = _.find(app._global.regionView, function(rv){
-				return (rv.top >= top - app._global.tolerance && rv.top <= top + app._global.tolerance) &&
-						(rv.bottom >= bottom - app._global.tolerance && rv.bottom <= bottom + app._global.tolerance) &&
-						(rv.left >= left - app._global.tolerance && rv.left <= left + app._global.tolerance) &&
-						(rv.right >= right - app._global.tolerance && rv.right <= right + app._global.tolerance);
+				return rv.topLeft === tempBoundingRect.topLeft &&
+						rv.topRight === tempBoundingRect.topRight &&
+						rv.bottomLeft === tempBoundingRect.bottomLeft &&
+						rv.bottomRight === tempBoundingRect.bottomRight;
 			});
 			//remove
 			if(assigned)
 				app._global.regionView = _.without(app._global.regionView, assigned);
 
+			//var regionName = regionObj.name;
+			this.getViewIn('generate-view').spray($currentRegion, content, {
+				data: data,
+				editors: editors,
+				svg: svg,
+			});
+
 			//add region to list
-			app._global.regionView.push({
+			app._global.regionView.push(getBoundingPoints(false, boundingRect, width, height, {
 				view: content,
 				data: data,
 				method: method,
 				editors: editors,
-				top: top,
-				bottom: bottom,
-				left: left,
-				right: right
-			});
+				svg: svg
+			}));
 
 			//sync it in local storage
 			app.store.remove('regionView');
@@ -1131,5 +915,63 @@
 		regionView.right = coords.right;
 		regionView.bottom = coords.bottom;
 	}
+
+	function getBoundingPoints(el, boundingRect, width, height, options){
+		//return obj
+		var temp = {};
+
+		//calcualte position in percentage
+		var top = trimNumber(boundingRect.top / height * 100), //transfer it into percentage
+			left = trimNumber(boundingRect.left / width * 100),
+			bottom = trimNumber(boundingRect.bottom / height * 100),
+			right = trimNumber(boundingRect.right / width * 100),
+			regionName = el ? $(el).attr('region') : ''; //region name for later reference
+
+		//find points corresponding to 4 corners
+		_.each(app._global.endPoints, function(point, id){
+			//top left
+			if(
+				(point.x >= left - app._global.tolerance && point.x <= left + app._global.tolerance) &&
+				(point.y >= top - app._global.tolerance && point.y <= top + app._global.tolerance)
+			){
+				temp.topLeft = id;
+			}
+
+			//top right
+			else if(
+				(point.x >= right - app._global.tolerance && point.x <= right + app._global.tolerance) &&
+				(point.y >= top - app._global.tolerance && point.y <= top + app._global.tolerance)
+			){
+				temp.topRight = id;
+			}
+
+			//bottom left
+			else if(
+				(point.x >= left - app._global.tolerance && point.x <= left + app._global.tolerance) &&
+				(point.y >= bottom - app._global.tolerance && point.y <= bottom + app._global.tolerance)
+			){
+				temp.bottomLeft = id;
+			}
+
+			//bottom right
+			else if(
+				(point.x >= right - app._global.tolerance && point.x <= right + app._global.tolerance) &&
+				(point.y >= bottom - app._global.tolerance && point.y <= bottom + app._global.tolerance)
+			){
+				temp.bottomRight = id;
+			}			
+		});
+		
+		//for app._global.regions
+		if(regionName) temp.regionName = regionName;
+
+		//for app._global.regionView
+		if(options)
+			temp = _.extend(temp, options);
+		
+		return temp;
+	}
+
+
 
 })(Application);

@@ -71,6 +71,7 @@
             });
 
             //initial view setup, show view related configs
+            //this.$el.find('#view-html-switch').prop('checked', true);
             this.viewRawSwitch(true);
             //swtich view or raw
             this.$el.find('#view-html-switch').on('change', function(e){
@@ -149,7 +150,7 @@
 			},
 			'view-add': function(){
 				//check html is active or view is active
-				var method = this.$el.find('.tabs .tab.active').attr('tab'),
+				var method = this.$el.find('#view-html-switch').prop('checked') ? 'view' : 'html',//this.$el.find('.tabs .tab.active').attr('tab'),
 					data = this.$el.find('#data-editor').val(),
 					content = '',
 					error = false;
@@ -182,16 +183,15 @@
 						return;
 					}
 				}
-
 				//for future use, like svg and editors
 				//else if....
 
 				//coop event to spray view in selected region
 				this.coop('view-menu-add-view', {
 					content: content,
-					data: (data && !error) ? data : {},
+					data: (data && !error) ? data : undefined,
 					method: method,
-					svgs: this.tempSvg,
+					svg: this.tempSvg,
 					editors: this.tempEditor
 				});
 			},
@@ -446,12 +446,24 @@
 			if(!_.string.include($target.attr('class'), 'side-menu')){
 
 				//make sure active the right tab when show
-				var method = (app._global.regionView[currentRegion] && app._global.regionView[currentRegion].method) || 'view';
+				var method = obj.method;
 
 				//active the method tab
 				that.$el.find('.tabs .tab').removeClass('active');
-				that.$el.find('.tabs .tab[tab="'+ method +'"]').addClass('active');
-
+				if(method === 'view'){
+					that.$el.find('.tabs .tab[tab="view"]').addClass('active').removeClass('hidden');
+					that.$el.find('.tabs .tab[tab="html"]').addClass('hidden').removeClass('active');
+					that.viewEditing = true;
+					that.viewRawSwitch(true);
+					that.$el.find('#view-html-switch').prop('checked', true);
+				}else{
+					that.$el.find('.tabs .tab[tab="html"]').addClass('active').removeClass('hidden');
+					that.$el.find('.tabs .tab[tab="view"]').addClass('hidden').removeClass('active');
+					that.viewEditing = false;
+					that.viewRawSwitch(false);
+					that.$el.find('#view-html-switch').prop('checked', false);
+				}
+				
 				//active the right input
 				that.$el.find('.tab-content').addClass('hidden');
 				that.$el.find('.tab-content[content="' + method + '"]').removeClass('hidden');

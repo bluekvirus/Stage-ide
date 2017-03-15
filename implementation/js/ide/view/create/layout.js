@@ -177,15 +177,7 @@
 			}
 
 			//use body as the mousemove view port
-			$body
-			.on('mousemove', _.throttle(function(e){
-				//prevent default
-				e.preventDefault();
-
-				//unbind original click event and mousedown event,
-				//unbind click until mousemove to avoid mousedown and click event conflict
-				$node.unbind('click').unbind('mousedown');
-
+			var updateLayoutSVG = app.throttle(function(e){
 				//check constrains
 				var hPer = e.pageX / that.$el.width() * 100,
 					vPer = e.pageY / that.$el.height() * 100;
@@ -205,11 +197,24 @@
 					//update all related lines and end points
 					that.updateRelated(constrains.hlines, constrains.vlines, constrains.endPoints, e, $node.attr('point-id'), originalCoords, {x: false, y: true});
 				}
-
+			});
+			var updateGeneratedViewLayout = app.debounce(function(){
 				//trigger coop event to re-generate layout and views
 				that.coop('layout-adjusted', $point);
+			});
+			$body
+			.on('mousemove', function(e){
+				//prevent default
+				e.preventDefault();
+
+				//unbind original click event and mousedown event,
+				//unbind click until mousemove to avoid mousedown and click event conflict
+				$node.unbind('click').unbind('mousedown');
+
+				updateLayoutSVG(e);
+				updateGeneratedViewLayout();
 				
-			}, 250))
+			})
 			.one('mouseup', function(e){
 				//prevent default
 				e.preventDefault();
