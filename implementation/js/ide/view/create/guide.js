@@ -115,7 +115,7 @@
 				occupied = checkOccupied({x1: x1, y1: y1, x2: x2, y2: y2}, tolerance);
 
 				//generate new line id here for easier reference
-				newLineId = _.uniqueId('horizontal-');
+				newLineId = _.uniqueId('horizontal-' + app._global.generation + '-');
 
 				//left endPoint
 				if(occupied.occupiedStart){
@@ -162,7 +162,7 @@
 				occupied = checkOccupied({x1: x1, y1: y1, x2: x2, y2: y2}, tolerance);
 
 				//generate new line id here for easier reference
-				newLineId = _.uniqueId('vertical-');
+				newLineId = _.uniqueId('vertical-' + app._global.generation + '-');
 
 				//top end point
 				if(occupied.occupiedStart){
@@ -317,7 +317,7 @@
 
 	//generate new point and add to global collection
 	function genPoint(x, y, adjcents, preid/*pre-defined id*/){
-		var obj = {}, id = preid ? preid : _.uniqueId('endPoint-');
+		var obj = {}, id = preid ? preid : _.uniqueId('endPoint-' + app._global.generation + '-');
 
 		obj.x = x;
 		obj.y = y;
@@ -359,7 +359,7 @@
 	//break a single segment into two
 	function breakLine(insertDir, oldLine/*the line that needs to be broken*/, coords/*coordinates for the new point*/, newLineId, start/*bool, indicate first or second point on the inserting line*/){
 		
-		var newPointId = _.uniqueId('endPoint-'), 
+		var newPointId = _.uniqueId('endPoint-' + app._global.generation + '-'), 
 			newStartLine, newEndLine;
 
 		if(insertDir === 'h'){//inserting horizontal line
@@ -431,7 +431,7 @@
 		//add to global collection accordingly
 		if(direction === 'h'){//horizontal line
 			//gen id
-			obj.id = preid ? preid : _.uniqueId('horizontal-');
+			obj.id = preid ? preid : _.uniqueId('horizontal-' + app._global.generation + '-');
 			//push into collection
 			app._global['horizontal-line'].push(obj);
 			//re-sort the collection
@@ -441,7 +441,7 @@
 
 		}else{//vertical line
 			//gen id
-			obj.id = preid ? preid : _.uniqueId('vertical-');
+			obj.id = preid ? preid : _.uniqueId('vertical-' + app._global.generation + '-');
 			//push into collection
 			app._global['vertical-line'].push(obj);
 			//re-sort the collection

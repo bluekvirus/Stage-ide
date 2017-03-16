@@ -46,16 +46,15 @@
 			//if has current, compare whether temporary is same as current,
 			//if yes, old logic show current
 			//if not, show the temporary
-			
-			var cached = {};
-			cached.endPoints = app.store.get('endPoints');
-			cached['horizontal-line'] = app.store.get('horizontal-line');
-			cached['vertical-line'] = app.store.get('vertical-line');
-			cached.regionView = app.store.get('regionView');
 
 			temp = app.store.get(app.store.get('current'));
 			//make temp.regionView undefined if not exist in order to be compared with cached
 			temp.regionView = temp.regionView || undefined;
+
+			var cached = {};
+			_.each(temp, function(obj, key){
+				cached[key] = app.store.get(key);
+			});
 
 			//deep compare two objects
 			if(!_.isEqual(cached, temp)){
@@ -91,6 +90,18 @@
 		//menu status
 		//use __opened__ as local key to store menu status
 		if(!app.store.get('__opened__')) app.store.set('__opened__', false);
+
+		//save generation
+		var gen = app.store.get('generation');
+		if(gen)
+			gen = gen + 1;
+		else
+			gen = 1;
+
+		app._global = app._global || {};
+		app._global.generation = gen;
+		app.store.set('generation', gen);
+
 	});
 	//Note: initializer can return a promise object for async loading, 
 	//add more initializers if you need. e.g `return app.remote() or $.ajax()`.

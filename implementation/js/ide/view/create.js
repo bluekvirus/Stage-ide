@@ -33,7 +33,7 @@
 
 			//show all stored templates
 			_.each(app.store.getAll(), function(item, key){
-				if(key !== 'endPoints' && key !== 'horizontal-line' && key !== 'vertical-line' && key !== 'current' && key !== '__opened__' && key !== 'regionView' && key !== ''){//only focus on stored object
+				if(key !== 'endPoints' && key !== 'horizontal-line' && key !== 'vertical-line' && key !== 'current' && key !== '__opened__' && key !== 'regionView' && key !== '' && key !== 'generation'){//only focus on stored object
 					
 					//actived one should be highlighed
 					if(key === app.store.get('current')){
@@ -200,7 +200,10 @@
 						$target: $target, //for getting target region
 						e: e, //for e.pageX and e.pageY
 						currentRegion: that.currentRegion, //currently focused region
-						method: assigned ? assigned.method : 'view'//method
+						method: assigned ? assigned.method : 'view',//method
+						content: assigned ? assigned.view : '',
+						editors: assigned ? assigned.editors: {},
+						svg: assigned ? assigned.svg : {}
 					});
 
 					//return immediately
@@ -438,7 +441,10 @@
 								that.getViewIn('generate-view').spray(that.$el.find('[region="' + regionName + '"]'), obj.view, {
 									data: obj.data,
 									editors: obj.editors,
-									svg: obj.svg
+									svg: _.reduce(obj.svg, function(memo, svgfnstr, name){
+											memo[name] = new Function("return " + svgfnstr)(); //Functionify lol
+											return memo;
+									}, {}),
 								});
 						});
 					}
@@ -698,6 +704,11 @@
 			this.reset();
 		},
 		onTemplateSaved: function(meta){
+			//set current meta
+			if(!meta['new-gen']){
+				app.store.set('current', meta.name);
+			} 
+
 			if(meta['new-gen']){//new template
 
 				//reset locally stored current. 

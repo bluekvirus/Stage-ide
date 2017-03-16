@@ -186,6 +186,21 @@
 				//for future use, like svg and editors
 				//else if....
 
+				//check whether currently actived tab is svg or editors, save current
+				var $current = this.$el.find('.tabs .tab.active');
+				if($current.attr('tab') === 'svg'){
+					var $currentSvg = this.$el.find('.svg-content .svg-list .svg-list-item.active');
+					if($currentSvg){
+						this.tempSvg[$currentSvg.text()] = this.$el.find('#svg-editor').val();
+					}
+				}else if($current.attr('tab') === 'editor'){
+					var $currentEditor = this.$el.find('.editor-content .editor-list .editor-list-item.active');
+					if($currentEditor){
+						this.tempEditor[$currentEditor.text()] = this.$el.find('#editors-editor').val();
+					}
+				}
+				
+
 				//coop event to spray view in selected region
 				this.coop('view-menu-add-view', {
 					content: content,
@@ -439,14 +454,18 @@
 				that.$el.find('.view-menu-list').empty();
 				//populate the list, with views returned from backend
 				_.each(views, function(viewName){
-					that.$el.find('.view-menu-list').append('<div class="view-menu-list-item" action="existing-view-click"><span>' + viewName + '</span></div>');
+					if(viewName === obj.content)
+						that.$el.find('.view-menu-list').append('<div class="view-menu-list-item active" action="existing-view-click"><span>' + viewName + '</span></div>');
+					else
+						that.$el.find('.view-menu-list').append('<div class="view-menu-list-item" action="existing-view-click"><span>' + viewName + '</span></div>');
 				});
 			});
 
 			if(!_.string.include($target.attr('class'), 'side-menu')){
 
 				//make sure active the right tab when show
-				var method = obj.method;
+				var method = obj.method,
+					content = obj.content;
 
 				//active the method tab
 				that.$el.find('.tabs .tab').removeClass('active');
@@ -456,30 +475,29 @@
 					that.viewEditing = true;
 					that.viewRawSwitch(true);
 					that.$el.find('#view-html-switch').prop('checked', true);
-				}else{
+					
+				}else if(method === 'html' ){
 					that.$el.find('.tabs .tab[tab="html"]').addClass('active').removeClass('hidden');
 					that.$el.find('.tabs .tab[tab="view"]').addClass('hidden').removeClass('active');
 					that.viewEditing = false;
 					that.viewRawSwitch(false);
 					that.$el.find('#view-html-switch').prop('checked', false);
+					//populate html editor, with given html string
+					if(content){
+						that.$el.find('#html-editor').val(content);
+					}
+						
 				}
 				
 				//active the right input
 				that.$el.find('.tab-content').addClass('hidden');
 				that.$el.find('.tab-content[content="' + method + '"]').removeClass('hidden');
+				
+				//update this.tempSvg
+				that.tempSvg = obj.svg;
+				that.tempEditor = JSON.stringify(obj.editors);
 
-				//load right data into editors
-				if(method === 'html'){//html only
-					that.$el.find('#html-editor').val((app._global.regionView[currentRegion] && app._global.regionView[currentRegion].view) || '');
-				}
-				else if(method === 'view'){//fetch template from a view
-					var Temp = '';
-					if(app._global.regionView[currentRegion]){
-						Temp = new (app.get(app._global.regionView[currentRegion].view))();
-					}
-					that.$el.find('#html-editor').val(Temp && Temp.getTemplate(true));
-				}
-
+				//update date editor
 				that.$el.find('#data-editor').val((app._global.regionView[currentRegion] && 
 													app._global.regionView[currentRegion].data && 
 													JSON.stringify(app._global.regionView[currentRegion].data)) || '');

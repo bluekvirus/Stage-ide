@@ -297,7 +297,7 @@
 
 	function removeAttachedPoint(point, dir){
 		var pre, after, x1, x2, y1, y2, startPoint, endPoint,
-			newLineId = _.uniqueId((dir === 'h') ? 'vertical-' : 'horizontal-');
+			newLineId = _.uniqueId((dir === 'h') ? 'vertical-' + app._global.generation + '-' : 'horizontal-' + app._global.generation + '-');
 		if(dir === 'h'){//deleting horizontal line
 			//get two vertical segments
 			pre = _.find(app._global['vertical-line'], function(vline){ return vline.id ===  point.top;});
