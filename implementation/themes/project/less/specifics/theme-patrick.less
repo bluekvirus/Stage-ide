@@ -71,7 +71,7 @@ body,
 			box-shadow: 3px 3px 5px @border;
 			.view-menu-top-holder {
 				.view-html-toggle-holder {
-					width: 15%;
+					width: 88px;
 					padding: @grid-gutter-width / 2 0 0 @grid-gutter-width / 2;
 					.onoffswitch {
 					    position: relative; width: 100%;
@@ -92,7 +92,7 @@ body,
 					}
 					.onoffswitch-inner {
 					    display: block; width: 200%; margin-left: -100%;
-					    transition: all 0.2s ease-in 0s;
+					    transition: all 0.1s ease-in 0s;
 					}
 					.onoffswitch-inner:before, .onoffswitch-inner:after {
 					    display: block; float: left; width: 50%; padding: 0; height: 25px;  line-height: 25px; 
@@ -117,7 +117,7 @@ body,
 					    right: 55px;
 					    border: 2px solid @border; 
 					    border-radius: 20px;
-					    transition: all 0.2s ease-in 0s; 
+					    transition: all 0.1s ease-in 0s; 
 					}
 					.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
 					    margin-left: 0;
@@ -129,7 +129,7 @@ body,
 				.tabs {
 					padding: @grid-gutter-width / 2 @grid-gutter-width / 2 0 @grid-gutter-width / 2;
 					text-align: center;
-					width: 85%;
+					width: 510px;
 					.tab {
 						width: 70px;
 						padding: @grid-gutter-width / 2;
@@ -190,7 +190,9 @@ body,
 			.view-menu-middle-holder {
 				border-top: 2px solid @border;
 				margin-top: -2px;
+				height: 450px;
 				.view-content {
+					height: 100%;
 					.view-menu-input-holder {
 						padding: @grid-gutter-width / 2;
 						height: 50px;
@@ -228,7 +230,7 @@ body,
 					}
 				}
 				.html-content {
-					height: 450px;
+					height: 100%;
 					padding: @grid-gutter-width / 2;
 					textarea {
 						height: 100%;
@@ -238,7 +240,7 @@ body,
 				}
 				.svg-content,
 				.editor-content {
-					height: 450px;
+					height: 100%;
 					padding: @grid-gutter-width / 2;
 					.svg-list,
 					.editor-list {
@@ -287,6 +289,7 @@ body,
 					}
 				}
 				.data-content {
+					height: 100%;
 					.data-input-holder {
 						padding: @grid-gutter-width / 2;
 						height: 50px;
@@ -433,6 +436,20 @@ body,
 			.view-menu-button-holder {
 				padding: @grid-gutter-width / 2;
 				border-top: 1px solid @border;
+				.expand-holder {
+					display: inline-block;
+				}
+			}
+			&.expand {
+				//full screen mode
+				position: absolute;
+				left: 0;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				width: 100%;
+				background-color: @background;
+				opacity: 0.85;
 			}
 		}
 		.side-menu-trigger {

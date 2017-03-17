@@ -15,7 +15,7 @@
 		
 		initialize: function(){
 			//temp storage for storing svgs
-			this.tempSvg = {}; //!!!!!!!!!!!!!!!!!!!!!!!!!!! store view configurations separately
+			this.tempSvg = {};
 
 			//temp storage for storing editors
 			this.tempEditor = {};
@@ -31,6 +31,9 @@
 
 			//flag to indicate which view is currently being activated
 			this.activatedView = '';
+
+			//object to store original top and left coordinates before expanding
+			this.originalTopLeft = {};
 		},
 		//onShow: function(){},
 		//onDataRendered: function(){},
@@ -70,9 +73,6 @@
 				}
             });
 
-            //initial view setup, show view related configs
-            //this.$el.find('#view-html-switch').prop('checked', true);
-            this.viewRawSwitch(true);
             //swtich view or raw
             this.$el.find('#view-html-switch').on('change', function(e){
             	var $this = $(this);
@@ -223,15 +223,16 @@
 				this.$el.find('.view-menu-middle-holder .tab-content[content="' + name + '"]').removeClass('hidden');
 
 				//if current is view but with NO selection, and switching to svg or editor. send notification and return
-				if(this.viewEditing && !this.activatedView) return;
+				//if(this.viewEditing && !this.activatedView) return;
 
 				//when switching tabs away from svgs and editors, should store the configuration of svgs and editors
 				if(current === 'svg'){
 					$el = this.$el.find('.svg-list .svg-list-item.active');
 
-					//save
+					//save current svg
 					if($el.text() && this.$el.find('#svg-editor').val())
 						this.tempSvg[$el.text()] = this.$el.find('#svg-editor').val();
+
 				}else if(current === 'editor'){
 					$el = this.$el.find('.editor-list .editor-list-item.active');
 					
@@ -245,7 +246,7 @@
 					var $htmlEditor = this.$el.find('#html-editor'),
 						svg, editors;
 
-					if(this.viewEditing){
+					if(this.viewEditing && this.activatedView){
 						svgs = app.get(this.activatedView).create().getTemplate(true).match(/svg=\"([^"]*)\"/g);
 						editors = app.get(this.activatedView).create().getTemplate(true).match(/editor=\"([^"]*)\"/g);
 					}else{
@@ -274,7 +275,53 @@
 
 				//active current, switch content
 				$self.addClass('active').siblings().removeClass('active');
-				this.$el.find('#editors-editor').val(this.tempEditor[$self.text()]);
+				this.$el.find('#editors-editor').val(JSON.stringify(this.tempEditor[$self.text()]));
+			},
+			expand: function(){
+				var that = this,
+					$parent = this.$el.parent();
+
+				//add class on region for easier styling
+				$parent.toggleClass('expand');
+
+				//change expand and shrink icon and text
+				this.$el.find('.expand-holder>span').toggleClass('hidden');
+
+				_.defer(function(){
+					//check whether expand or not to adjust height of editor region
+					if($parent.hasClass('expand')){
+						$parent.css({
+							left: 0,
+							top: 0,
+						});
+
+						var totalHeight = that.$el.parent().innerHeight(),
+							topHeight = that.$el.find('.view-menu-top-holder').outerHeight(),
+							bottomHeight = that.$el.find('.view-menu-button-holder').outerHeight(),
+							contentHeight = totalHeight - topHeight - bottomHeight,
+							viewAndDataInputHeight = 50;
+						//set up contents height
+						that.$el.find('.view-menu-middle-holder').css({
+							height: contentHeight + 'px'
+						});
+						
+						//set up info height specifically for view and data content
+						that.$el.find('.view-menu-list, .data-editor-holder').css({
+							height: contentHeight - viewAndDataInputHeight + 'px'
+						});
+
+						//change tabs holder size
+						var totalWidth = that.$el.parent().innerWidth(),
+							toggleWidth = that.$el.find('.view-html-toggle-holder').outerWidth();
+
+						that.$el.find('.view-menu-top-holder .tabs').css({
+							width: totalWidth - toggleWidth + 'px'
+						});
+
+					}else{
+						that.resetToOriginalHeight(true);
+					}
+				});
 			},
 		},
 		//----------------------------------------- helpers -----------------------------------------//
@@ -289,16 +336,20 @@
 			this.$el.find('#svg-editor').val('');
 			this.$el.find('#editors-editor').val('');
 
+			//clean up old lists
+			//empty old svg list
+			this.$el.find('.svg-content .svg-list').empty();
+			//empty old editors list
+			this.$el.find('.editor-content .editor-list').empty();
+
 			//=========== svgs ==========//
 			if(svgs){
-				//empty old list
-				this.$el.find('.svg-content .svg-list').empty();
 				//trim out falsy element
 				svgs = _.compact(svgs);
 				//trim every element of svgs array
 				if(svgs.length){
 					_.map(svgs, function(svgStr, index){
-						svgs[index] = svgStr.replace('svg=', '').replace(/\"/g, '');
+						svgs[index] = svgStr.replace('svg=', '').replace(/\"|\'/g, '');
 					});
 
 					//extend this.tempSvg with svgs
@@ -339,10 +390,9 @@
 			
 			//=========== editors ==========//
 			if(editors){
-				//empty old list
-				this.$el.find('.editor-content .editor-list').empty();
 				//trim out falsy elements
 				editors = _.compact(editors);
+
 				//trim every element of editors array
 				if(editors && editors.length){
 					_.map(editors, function(editorStr, index){
@@ -412,6 +462,12 @@
         			anchor: $('.editor-content')
         		});
 
+				//set viewEditing flag to true
+        		this.viewEditing = true;
+
+        		//change toggle switch
+        		this.$el.find('#view-html-switch').prop('checked', true);
+
 			}else{
 				//hide html tab, active view tab
         		this.$el.find('.tabs [tab="html"]').removeClass('hidden').addClass('active');
@@ -426,17 +482,29 @@
         		$('.editor-content').overlay(false);
 
         		//switch from view to html, if user has selected html after activating a view, need to populate html editor with view's tempalte
-				if(this.activatedView) 
+				if(this.activatedView)
 					this.$el.find('#html-editor').val(app.get(this.activatedView).create().getTemplate(true));
-				
+
+				//set viewEditing flag to false
+				this.viewEditing = false;
+				this.activatedView = '';
+
+				//change toggle switch
+        		this.$el.find('#view-html-switch').prop('checked', false);
 			}
 		},
 		//----------------------------------------- coops -----------------------------------------//
 		onViewMenuShow: function(obj){
+			//reset to original size first
+			this.$el.parent().removeClass('expand');
+			this.resetToOriginalHeight();
+			this.originalTopLeft = {};
+
+			//variables
 			var that = this,
-				$target = obj.$target,
-				e = obj.e,
-				currentRegion = obj.currentRegion;
+				config = $.extend(true, {}, obj);
+				
+			app.debug('view-menu-show object received', config);
 
 			var $viewMenu = that.parentCt.$el.find('.view-menu');
 			//get view list
@@ -447,73 +515,102 @@
 				//clean up input text
 				that.$el.find('#view-search').val('');
 
-				//clean up currently actived view tag
-				that.$el.find('.view-menu-list .view-menu-list-item').removeClass('active');
-
 				//clean up old lists
 				that.$el.find('.view-menu-list').empty();
 				//populate the list, with views returned from backend
 				_.each(views, function(viewName){
-					if(viewName === obj.content)
+					if(config.method === 'view' && viewName === config.content){
 						that.$el.find('.view-menu-list').append('<div class="view-menu-list-item active" action="existing-view-click"><span>' + viewName + '</span></div>');
+						//set indicator for activatedView
+						that.activatedView = viewName;
+					}
 					else
 						that.$el.find('.view-menu-list').append('<div class="view-menu-list-item" action="existing-view-click"><span>' + viewName + '</span></div>');
 				});
 			});
 
-			if(!_.string.include($target.attr('class'), 'side-menu')){
+			if(!_.string.include(config.$target.attr('class'), 'side-menu')){
 
-				//make sure active the right tab when show
-				var method = obj.method,
-					content = obj.content;
-
-				//active the method tab
-				that.$el.find('.tabs .tab').removeClass('active');
-				if(method === 'view'){
-					that.$el.find('.tabs .tab[tab="view"]').addClass('active').removeClass('hidden');
-					that.$el.find('.tabs .tab[tab="html"]').addClass('hidden').removeClass('active');
-					that.viewEditing = true;
-					that.viewRawSwitch(true);
-					that.$el.find('#view-html-switch').prop('checked', true);
+				//check whether current region has been assigned or not
+				if(config.assigned){//assigned
 					
-				}else if(method === 'html' ){
-					that.$el.find('.tabs .tab[tab="html"]').addClass('active').removeClass('hidden');
-					that.$el.find('.tabs .tab[tab="view"]').addClass('hidden').removeClass('active');
-					that.viewEditing = false;
-					that.viewRawSwitch(false);
-					that.$el.find('#view-html-switch').prop('checked', false);
-					//populate html editor, with given html string
-					if(content){
-						that.$el.find('#html-editor').val(content);
+					if(config.method === 'view'){
+
+						//active view editing tab
+						this.viewRawSwitch(true);
+
+					}else if(config.method === 'html'){
+
+						//active html editing tab
+						this.viewRawSwitch();
+
+						//update html editor
+						this.$el.find('#html-editor').val(config.content);
 					}
-						
+
+					//update temp storage for svg and editors
+					this.tempSvg = config.svg;
+					this.tempEditor = config.editors;
+
+					//update data editor
+					this.$el.find('#data-editor').val(JSON.stringify(config.data));
 				}
-				
-				//active the right input
-				that.$el.find('.tab-content').addClass('hidden');
-				that.$el.find('.tab-content[content="' + method + '"]').removeClass('hidden');
-				
-				//update this.tempSvg
-				that.tempSvg = obj.svg;
-				that.tempEditor = JSON.stringify(obj.editors);
+				//not assigned
+				else{
+					//set up view as initial method
+					this.viewRawSwitch(true);
 
-				//update date editor
-				that.$el.find('#data-editor').val((app._global.regionView[currentRegion] && 
-													app._global.regionView[currentRegion].data && 
-													JSON.stringify(app._global.regionView[currentRegion].data)) || '');
+					//clean up all the temp storage for svgs and editors
+					this.tempSvg = {};
+					this.tempEditor = {};
 
+					//cleanup currently activated flag
+					this.activatedView = '';
 
+					//clean up all the inputs 
+					this.$el.find('#html-editor').val('');
+					this.$el.find('#svg-editor').val('');
+					this.$el.find('#editors-editor').val('');
+				}
+
+				//remove hidden class first, otherise no height
+				$viewMenu.removeClass('hidden');
+				this.originalTopLeft.top = (($window.height() - config.e.pageY) < $viewMenu.height()) ? 
+							((config.e.pageY - $viewMenu.height() <= 10) ? ($window.height() - $viewMenu.height()) : config.e.pageY - $viewMenu.height()) 
+							: config.e.pageY;
+				this.originalTopLeft.left = (($window.width() - config.e.pageX) < $viewMenu.width()) ? (config.e.pageX - $viewMenu.width()) : config.e.pageX;
 				//adjust view menu position
-				$viewMenu.removeClass('hidden').css({
-					top: (($window.height() - e.pageY) < $viewMenu.height()) ? 
-							((e.pageY - $viewMenu.height() <= 10) ? ($window.height() - $viewMenu.height()) : e.pageY - $viewMenu.height()) 
-							: e.pageY,
-					left: (($window.width() - e.pageX) < $viewMenu.width()) ? (e.pageX - $viewMenu.width()) : e.pageX,
-				});	
+				$viewMenu.css({
+					top: this.originalTopLeft.top,
+					left: this.originalTopLeft.left,
+				});
+
 			}else{
 				$viewMenu.addClass('hidden');
 			}
 		},
+		resetToOriginalHeight: function(callFromExpand){
+			if(callFromExpand)
+				this.$el.parent().css({
+					top: this.originalTopLeft.top,
+					left: this.originalTopLeft.left,
+				});
+
+			//reset tab holder size
+			this.$el.find('.view-menu-top-holder .tabs').css({
+				width: 510 + 'px'
+			});
+
+			//reset middle holder the sizes
+			this.$el.find('.view-menu-middle-holder').css({
+				height: 450 + 'px'
+			});
+
+			//set up info height specifically for view and data content
+			this.$el.find('.view-menu-list, .data-editor-holder').css({
+				height: 400 + 'px'
+			});
+		}
 	});
 
 	
@@ -525,7 +622,6 @@
 	        			'<div class="body">Please swtich to "Raw" model to edit.</div>',
         			'</div>'
         		],
-
     });
 
 })(Application);

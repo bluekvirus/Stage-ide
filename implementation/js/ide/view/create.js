@@ -188,6 +188,7 @@
 					var boundingRect = _.clone((that.$el.find('[region="' + that.currentRegion + '"]')[0]).getBoundingClientRect());
 					boundingRect = _.pick(boundingRect, 'top', 'left', 'right', 'bottom');
 					var points = getBoundingPoints(false, boundingRect, that.$el.width(), that.$el.height());
+					app.debug('boundingRect points', points);
 					//find assignment if exists
 					var assigned = _.find(app._global.regionView, function(rv){
 						return rv.topLeft === points.topLeft &&
@@ -200,6 +201,7 @@
 						$target: $target, //for getting target region
 						e: e, //for e.pageX and e.pageY
 						currentRegion: that.currentRegion, //currently focused region
+						assigned: assigned,
 						method: assigned ? assigned.method : 'view',//method
 						content: assigned ? assigned.view : '',
 						editors: assigned ? assigned.editors: {},
@@ -436,9 +438,10 @@
 								return;
 							}
 
+							var generatedView = that.getViewIn('generate-view');
 							if(regionName)
 								//load view into the region
-								that.getViewIn('generate-view').spray(that.$el.find('[region="' + regionName + '"]'), obj.view, {
+								generatedView.spray(generatedView.getRegion(regionName).$el.css('overflow', 'auto'), obj.view, {
 									data: obj.data,
 									editors: obj.editors,
 									svg: _.reduce(obj.svg, function(memo, svgfnstr, name){
@@ -937,6 +940,8 @@
 			bottom = trimNumber(boundingRect.bottom / height * 100),
 			right = trimNumber(boundingRect.right / width * 100),
 			regionName = el ? $(el).attr('region') : ''; //region name for later reference
+
+		console.log(top, right, bottom, left);
 
 		//find points corresponding to 4 corners
 		_.each(app._global.endPoints, function(point, id){
