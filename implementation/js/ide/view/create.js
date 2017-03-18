@@ -154,9 +154,6 @@
 					//exclude view-menu
 					if($target.hasClass('view-menu'))
 						return;		
-
-					//setup current region
-					that.currentRegion = $target.attr('region') || that.currentRegion;
 					
 					//hightlight clicked region
 					//remove highlight
@@ -168,24 +165,27 @@
 						var parentName = $target.data().region.parentCt.parentRegion._name,
 							flag;
 
-						//check whether parent has already been assigned
-						flag = _.find(app._global.regionView, function(rv){ return rv.regionName === parentName; });
-
-						//if parent already been assigned, then make parent as target region
-						if(flag){
+						while(parentName !== 'generate-view'){
 							$target = $target.data().region.parentCt.parentRegion.$el;
-							that.currentRegion = parentName;
+							parentName = $target.data().region.parentCt.parentRegion._name;
 						}
 
 						$target.addClass('active');	
 						that.adjustRegionCover(true, $target);
 
 					}else{
+						$target = ''; //make it falsy to work with the logic
 						that.adjustRegionCover(true);
 					}
 
+
+					//setup current region name
+					that.currentRegion = $target || that.currentRegion;
+					//give back target
+					$target = that.currentRegion;
+
 					//get current region boundingBox
-					var boundingRect = _.clone((that.$el.find('[region="' + that.currentRegion + '"]')[0]).getBoundingClientRect());
+					var boundingRect = _.clone(that.currentRegion[0].getBoundingClientRect());
 					boundingRect = _.pick(boundingRect, 'top', 'left', 'right', 'bottom');
 					var points = getBoundingPoints(false, boundingRect, that.$el.width(), that.$el.height());
 					app.debug('boundingRect points', points);
@@ -200,7 +200,6 @@
 					app.coop('view-menu-show', {
 						$target: $target, //for getting target region
 						e: e, //for e.pageX and e.pageY
-						currentRegion: that.currentRegion, //currently focused region
 						assigned: assigned,
 						method: assigned ? assigned.method : 'view',//method
 						content: assigned ? assigned.view : '',
@@ -417,7 +416,7 @@
 					if(app._global.regionView.length){
 
 						_.each(app._global.regionView, function(obj, index){
-							var regionObj, regionName;
+							var regionObj, regionName, regionMethod;
 							//find which region in app._global.regions representing current region, save content in it;
 							//consult app._global.tolerance for acceptable margin of errors.
 							regionObj = _.find(app._global.regions, function(bounds){
@@ -430,6 +429,8 @@
 							//get region name
 							if(regionObj){
 								regionName = regionObj.regionName;
+								//get render method, view or html
+								regionMethod = obj.method;
 							}
 								
 							//trim out the region has no match
@@ -440,15 +441,22 @@
 
 							var generatedView = that.getViewIn('generate-view');
 							if(regionName)
-								//load view into the region
-								generatedView.spray(generatedView.getRegion(regionName).$el.css('overflow', 'auto'), obj.view, {
-									data: obj.data,
-									editors: obj.editors,
-									svg: _.reduce(obj.svg, function(memo, svgfnstr, name){
-											memo[name] = new Function("return " + svgfnstr)(); //Functionify lol
-											return memo;
-									}, {}),
-								});
+								if(regionMethod === 'view'){
+									//load view into the region
+									generatedView.spray(generatedView.getRegion(regionName).$el.css('overflow', 'auto'), obj.view, {
+										data: obj.data,
+									});
+								}else{
+									//load view into the region
+									generatedView.spray(generatedView.getRegion(regionName).$el.css('overflow', 'auto'), obj.view, {
+										data: obj.data,
+										editors: obj.editors,
+										svg: _.reduce(obj.svg, function(memo, svgfnstr, name){
+												memo[name] = new Function("return " + svgfnstr)(); //Functionify lol
+												return memo;
+										}, {}),
+									});
+								}
 						});
 					}
 
@@ -659,6 +667,9 @@
 			app._global['vertical-line'] = undefined;
 			app._global.regionView = undefined;
 			
+			//hide region-cover
+			this.$el.find('.region-cover').addClass('hidden');
+
 			//reset layout
 			this.resetLayout(true);
 
@@ -774,7 +785,7 @@
 		onViewMenuAddView: function(configObj){
 			var obj = $.extend(true, {}, configObj),
 				originalSvg; //for saving original svgs as string
-			
+			//console.log(configObj, obj);
 			//translate each editor configuration from string to object
 			if(obj.editors)
 				_.each(obj.editors, function(str, name){
@@ -797,7 +808,7 @@
 				method = obj.method,
 				editors = obj.editors,
 				svg = obj.svg,
-				$currentRegion = this.$el.find('[region="' + this.currentRegion + '"]'),
+				$currentRegion = this.currentRegion,
 				width = this.$el.width(),
 				height = this.$el.height();
 
@@ -824,20 +835,26 @@
 			if(assigned)
 				app._global.regionView = _.without(app._global.regionView, assigned);
 
-			//var regionName = regionObj.name;
-			this.getViewIn('generate-view').spray($currentRegion, content, {
-				data: data,
-				editors: editors,
-				svg: svg,
-			});
+			//check what method? if view do not overwrite svg and editor
+			if(method === 'view')
+				this.getViewIn('generate-view').spray($currentRegion.css('overflow', 'auto'), content, {
+					data: data,
+				});
+			//html
+			else
+				this.getViewIn('generate-view').spray($currentRegion.css('overflow', 'auto'), content, {
+					data: data,
+					editors: editors,
+					svg: svg,
+				});
 
 			//add region to list
 			app._global.regionView.push(getBoundingPoints(false, boundingRect, width, height, {
 				view: content,
 				data: data,
 				method: method,
-				editors: editors,
-				svg: originalSvg
+				editors: (method === 'view') ? (undefined) : editors,
+				svg: (method === 'view') ? (undefined) : originalSvg
 			}));
 
 			//sync it in local storage
@@ -940,8 +957,6 @@
 			bottom = trimNumber(boundingRect.bottom / height * 100),
 			right = trimNumber(boundingRect.right / width * 100),
 			regionName = el ? $(el).attr('region') : ''; //region name for later reference
-
-		console.log(top, right, bottom, left);
 
 		//find points corresponding to 4 corners
 		_.each(app._global.endPoints, function(point, id){

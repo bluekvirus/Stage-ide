@@ -166,10 +166,6 @@
 				    }
 				}
 
-				if(method === 'data'){
-					app.notify('No insert method selected!', 'Please select view or HTML tab to compensate the data.', 'error', {icon: 'fa fa-reddit-alien'});
-					return;
-				}
 				//check which one is active
 				else if(method === 'html'){
 					content = this.$el.find('#html-editor').val();
@@ -188,19 +184,18 @@
 
 				//check whether currently actived tab is svg or editors, save current
 				var $current = this.$el.find('.tabs .tab.active');
-				if($current.attr('tab') === 'svg'){
+				if($current.attr('tab') === 'svg' && method === 'html'){
 					var $currentSvg = this.$el.find('.svg-content .svg-list .svg-list-item.active');
 					if($currentSvg){
 						this.tempSvg[$currentSvg.text()] = this.$el.find('#svg-editor').val();
 					}
-				}else if($current.attr('tab') === 'editor'){
+				}else if($current.attr('tab') === 'editor' && method === 'html'){
 					var $currentEditor = this.$el.find('.editor-content .editor-list .editor-list-item.active');
 					if($currentEditor){
 						this.tempEditor[$currentEditor.text()] = this.$el.find('#editors-editor').val();
 					}
 				}
 				
-
 				//coop event to spray view in selected region
 				this.coop('view-menu-add-view', {
 					content: content,

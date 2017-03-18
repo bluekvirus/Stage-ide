@@ -26,6 +26,7 @@
     "globule": "^0.2.0",
     "gm": "^1.16.0",
     "http-proxy": "^1.1.6",
+    "js-beautify": "~1.6.x",
     "less": "~2.5.x",
     "less-plugin-glob": "~1.1.x",
     "merge-dirs": "0.0.2",
@@ -44,7 +45,6 @@
     "wrench": "^1.5.8",
     "ws": "^0.8.0"
   },
-  "dependencies": {},
   "scripts": {
     "start": "nodemon devserver/run.js",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -53,5 +53,5 @@
   "repository": "",
   "author": "Tim Lauv (bluekvirus@gmail.com)",
   "license": "MIT",
-  "updatedOn": "2017-03-16T02:03:27.793Z"
+  "updatedOn": "2017-03-19T04:50:27.279Z"
 }

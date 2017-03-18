@@ -1,0 +1,23 @@
+<div class="modal-dialog text-left">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="close" data-dismiss="modal" aria-hidden="true" action="close">×</div>
+            <h4 class="modal-title"><i class="fa fa-flash"></i> Save View</h4>
+        </div>
+        <div class="modal-body" region="body">
+        	<div class="form form-horizontal">
+        		<div editor="view-name"></div>
+                <!-- <div editor="view-name"></div> -->
+        		<div class="text-danger hidden text-center overwrite-message">
+        			<span class="name"></span> already exists. Do you want to overwrite it? &nbsp;&nbsp;
+        			<span class="btn btn-xs btn-danger" action="overwrite"> <strong>YES</strong></span>
+        			<span class="btn btn-xs btn-link" action="overwrite-cancel"> <strong>NO</strong></span>
+        		</div>
+        	</div>
+        </div>
+        <div class="modal-footer">
+            <div class="btn btn-link" data-dismiss="modal" action="close">Close</div>
+            <div class="btn btn-success" action="save">Save</div>
+        </div>
+    </div>
+</div>

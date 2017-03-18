@@ -129,21 +129,7 @@
 			temp.regionView = app._global.regionView;
 
 			app.store.remove(name);//remove old entry
-			app.store.set(name, $.extend(true, {}, temp));//deep copy
-
-			//get html from the layout
-			//var html = app.locate('Create').view.getViewIn('generate-view').$el[0].outerHTML;
-			//var html = app.locate('Create').view.getViewIn('generate-view').$el.html();
-
-			//call backend to save this view
-			// app.remote({
-			// 	url: '/api/viewsaving',
-			// 	payload: {
-			// 		html: html,
-			// 		name: name
-			// 	}	
-			// });
-			
+			app.store.set(name, $.extend(true, {}, temp));//deep copy			
 		}
 	});
 

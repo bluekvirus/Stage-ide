@@ -104,9 +104,6 @@
 					class: 'save-overlay create-overlay',
 				});
 			},
-
-
-
 			'delete-template': function($self){
 				var Delete = app.get('Create.Delete');
 				(new Delete({
@@ -118,6 +115,15 @@
 					effect: false,
 					class: 'delete-overlay create-overlay danger-title',
 				});
+			},
+			'save-view': function($self){
+				var Export = app.get('Create.Export');
+				(new Export({
+					
+				})).overlay({
+					effect: false,
+					class: 'export-overlay create-overlay',
+				});	
 			},
 		},
 		lockLayout: function(){

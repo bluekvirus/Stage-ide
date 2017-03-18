@@ -16,7 +16,11 @@
 		initialize: function(){},
 		//onShow: function(){},
 		//onDataRendered: function(){},
-		
+		svg: {
+			'test-svg1': function(paper){
+				paper.circle(20, 20, 15);
+			}
+		},
 		actions: {
 		//	submit: function(){...},
 		//	dosomething: function(){...},
@@ -24,7 +28,7 @@
 		},
 
 		onReady: function(){
-			console.log('templates', this.getTemplate(true));
+			//console.log('templates', this.getTemplate(true));
 		},
 
 	});
