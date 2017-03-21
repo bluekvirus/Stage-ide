@@ -21,6 +21,11 @@
 				paper.circle(20, 20, 15);
 			}
 		},
+		editors: {
+			'test-editor': {
+				type: 'number',
+			},
+		},
 		actions: {
 		//	submit: function(){...},
 		//	dosomething: function(){...},

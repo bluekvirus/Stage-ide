@@ -23,7 +23,7 @@
     "owl.carousel": "*",
     "colorbox": "*",
     "switchery": "*",
-    "ace": "*",
+    "ace-builds": "*",
     "highlightjs": "*",
     "Snap.svg": "*",
     "paper": "*",
@@ -46,5 +46,5 @@
     "roboto-fontface": "*",
     "ubuntu-fontface": "*"
   },
-  "updatedOn": "2017-03-19T04:50:27.275Z"
+  "updatedOn": "2017-03-21T23:08:37.130Z"
 }

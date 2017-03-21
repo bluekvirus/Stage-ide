@@ -835,11 +835,20 @@
 			if(assigned)
 				app._global.regionView = _.without(app._global.regionView, assigned);
 
+
 			//check what method? if view do not overwrite svg and editor
-			if(method === 'view')
-				this.getViewIn('generate-view').spray($currentRegion.css('overflow', 'auto'), content, {
+			if(method === 'view'){
+				//get newest by using app.get api
+				var Temp = app.get(content, {
+					override: true
+				});
+
+				app.debug('view method spray...');
+
+				this.getViewIn('generate-view').spray($currentRegion.css('overflow', 'auto'), Temp, {
 					data: data,
 				});
+			}
 			//html
 			else
 				this.getViewIn('generate-view').spray($currentRegion.css('overflow', 'auto'), content, {

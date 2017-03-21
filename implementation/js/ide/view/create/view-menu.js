@@ -24,7 +24,7 @@
 			this.initialSvgSetup = 'function(paper){\r\n\t\r\n}';
 
 			//initial textarea setup for editors
-			this.initialEditorSetup = '{\r\n\t"type": "text"\r\n}';
+			this.initialEditorSetup = {'type': 'text'};
 
 			//flag indicating which editing mode is on
 			this.viewEditing = true;
@@ -101,15 +101,13 @@
 				var that = this;
 				//remote not enabled
 				if(this.$el.find('#data-url').prop('disabled')){
-					app.notify('Remote not enabled!', 'You must enable remote to fetch.', 'error', {icon: 'fa fa-reddit-alien'});
+					app.notify('Remote is not enabled!', 'You must enable remote to fetch.', 'error', {icon: 'fa fa-reddit-alien'});
 				}else{
-					var url = this.$el.find('#data-url').val(),
-						dataStr = '';
+					var url = this.$el.find('#data-url').val();
 					if(url)
 						app.remote(url)
 							.done(function(data){
-								dataStr = JSON.stringify(data);
-								that.$el.find('#data-editor').val(dataStr);
+								that.$el.find('#data-editor').val(JSON.stringify(data, '\t', 4));
 							})
 							.fail(function(){
 								app.notify('Remote fetch error!', 'Please check your remote URL.', 'error', {icon: 'fa fa-reddit-alien'});
@@ -192,7 +190,7 @@
 				}else if($current.attr('tab') === 'editor' && method === 'html'){
 					var $currentEditor = this.$el.find('.editor-content .editor-list .editor-list-item.active');
 					if($currentEditor){
-						this.tempEditor[$currentEditor.text()] = this.$el.find('#editors-editor').val();
+						this.tempEditor[$currentEditor.text()] = JSON.parse(this.$el.find('#editors-editor').val());
 					}
 				}
 				
@@ -233,7 +231,7 @@
 					
 					//save
 					if($el.text() && this.$el.find('#editors-editor').val())
-						this.tempEditor[$el.text()] = this.$el.find('#editors-editor').val();
+						this.tempEditor[$el.text()] = JSON.parse(this.$el.find('#editors-editor').val());
 				}
 
 				//if switch to svg or editors, scan html editor, if raw enabled
@@ -266,11 +264,11 @@
 			'load-editor': function($self){
 				//save currently active content to editor-content
 				var $active = $self.parent().find('.active');
-				this.tempEditor[$active.text()] = this.$el.find('#editors-editor').val();
+				this.tempEditor[$active.text()] = JSON.parse(this.$el.find('#editors-editor').val());
 
 				//active current, switch content
 				$self.addClass('active').siblings().removeClass('active');
-				this.$el.find('#editors-editor').val(JSON.stringify(this.tempEditor[$self.text()]));
+				this.$el.find('#editors-editor').val(JSON.stringify(this.tempEditor[$self.text()], '\t', 4));
 			},
 			expand: function(){
 				var that = this,
@@ -416,7 +414,7 @@
 						$temp.addClass('active');
 
 						//change editors editor content
-						that.$el.find('#editors-editor').val(that.tempEditor[str]);
+						that.$el.find('#editors-editor').val(JSON.stringify(that.tempEditor[str], '\t', 4));
 
 						//flip flag
 						firstFlag = true;
@@ -464,7 +462,7 @@
         		this.$el.find('#view-html-switch').prop('checked', true);
 
 			}else{
-				//hide html tab, active view tab
+				//hide view tab, active html tab
         		this.$el.find('.tabs [tab="html"]').removeClass('hidden').addClass('active');
         		this.$el.find('.tabs [tab="view"]').addClass('hidden');
         		
@@ -477,8 +475,21 @@
         		$('.editor-content').overlay(false);
 
         		//switch from view to html, if user has selected html after activating a view, need to populate html editor with view's tempalte
-				if(this.activatedView)
+				if(this.activatedView){
+					//fill html editor with view's template
 					this.$el.find('#html-editor').val(app.get(this.activatedView).create().getTemplate(true));
+
+					//update this.tempEditor
+					this.tempEditor = app.get(this.activatedView).prototype.editors;
+
+					//update thie.tempSvg
+					//reset this.tempSvg
+					this.tempSvg = {};
+					//insert by looping through svg definitions
+					_.each(app.get(this.activatedView).prototype.svg, function(fn, name){
+						that.tempSvg[name] = fn.toString();
+					});
+				}
 
 				//set viewEditing flag to false
 				this.viewEditing = false;
@@ -548,7 +559,7 @@
 					this.tempEditor = config.editors;
 
 					//update data editor
-					this.$el.find('#data-editor').val(JSON.stringify(config.data));
+					this.$el.find('#data-editor').val(JSON.stringify(config.data, '\t', 4));
 				}
 				//not assigned
 				else{
