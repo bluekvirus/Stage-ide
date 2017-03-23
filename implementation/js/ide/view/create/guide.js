@@ -7,7 +7,8 @@
 
 	app.view('Create.Guide', {
 		template: '@view/create/guide.html',
-		coop:['guideline-move', 'guideline-switch', 'guideline-click', 'gen-new-line', 'line-layout-reset-confirmed'],
+		coop:['guideline-move', 'guideline-even-divide', 'guideline-even-divide-click', 'guideline-even-divide-confirmed',
+				'guideline-switch', 'guideline-click', 'gen-new-line', 'line-layout-reset-confirmed'],
 		initialize: function(){
 			this._horizontal = true; //flag indicates that now showing horizontal line or vertical line
 			this._x = 0; //0 - 100 in percentage
@@ -83,10 +84,158 @@
 			if(this.parentCt.generated)
 				(new (app.get('Create.LayoutResetConfirm'))()).overlay({
 					effect: false,
-					class: 'layout-reset-confirm-overlay create-overlay danger-title'
+					class: 'layout-reset-confirm-overlay create-overlay warning-title'
 				});
 			else
 				this.confirmAdd();
+		},
+		onGuidelineEvenDivide: function(position){
+			//reset horizontal and vertical guideline
+			if(this._horizontal)
+				this.$el.find('.horizontal-line').css({
+					top: 0
+				});
+			else
+				this.$el.find('.vertical-line').css({
+						left: 0
+					});
+
+			//remove all the old divide lines
+			this.$el.find('.divide-line-horizontal, .divide-line-vertical').remove();
+
+			this._x = position.x / this.$el.width() * 100;
+			this._y = position.y / this.$el.height() * 100;
+
+			//first find out which region does it in
+			var constrain_h = this.guideLineConstrain('h'),
+				constrain_v = this.guideLineConstrain('v'),
+				lineCoords = [], gap, i;
+
+			//calcualte three divide based on direction
+			if(this._horizontal){
+				
+				gap = (constrain_v.max - constrain_v.min) / 4;
+				
+				//setup coordinates for the lines
+				for(i = 0; i < 3; i ++){
+					lineCoords.push({
+						x1: constrain_h.min,
+						x2: constrain_h.max,
+						y: constrain_v.min + (i + 1) * gap
+					});
+				}
+
+			}else{
+
+				gap = (constrain_h.max - constrain_h.min) / 4;
+				
+				//setup coordinates for the lines
+				for(i = 0; i < 3; i ++){
+					lineCoords.push({
+						y1: constrain_v.min,
+						y2: constrain_v.max,
+						x: constrain_h.min + (i + 1) * gap
+					});
+				}
+				
+			}
+
+			var $temp;
+			//TODO: insert lines into the $el, by inserting div.....
+			if(this._horizontal){
+				
+				//append lines into the DOM
+				for(i = 0; i < 3; i++){
+					$temp = $('<div class="divide-line-horizontal"></div>').css({
+						left: (lineCoords[i].x1 / 100 * this.$el.width()) + 'px',
+						right: (lineCoords[i].x2 / 100 * this.$el.width()) + 'px',
+						top: (lineCoords[i].y / 100 * this.$el.height()) + 'px',
+						width: ((lineCoords[i].x2 / 100 * this.$el.width()) - (lineCoords[i].x1 / 100 * this.$el.width())) + 'px'//has to give height in order to show, weird.
+					});
+					
+					this.$el.append($temp);
+				}
+
+			}else{
+
+				//append lines into the DOM
+				for(i = 0; i < 3; i ++){
+					$temp = $('<div class="divide-line-vertical"></div>').css({
+						top: (lineCoords[i].y1 / 100 * this.$el.height()) + 'px',
+						bottom: (lineCoords[i].y2 / 100 * this.$el.height()) + 'px',
+						left: (lineCoords[i].x / 100 * this.$el.width()) + 'px',
+						height: ((lineCoords[i].y2 / 100 * this.$el.height()) - (lineCoords[i].y1 / 100 * this.$el.height())) + 'px'
+					});
+					this.$el.append($temp);
+				}
+
+			}
+		},
+		onGuidelineEvenDivideClick: function(){
+			app.get('Create.GuidelineEvenSplitConfirm').create().overlay({
+				effect: false,
+				class: 'create-overlay',
+			});
+		},
+		onGuidelineEvenDivideConfirmed: function(numOfRegions){
+			var that = this;
+			//translate em to px
+			var hem = parseFloat(getComputedStyle(document.body).fontSize),
+				wem = parseFloat(getComputedStyle(document.body).fontSize);
+
+			//first find out which region does it in
+			var constrain_h = this.guideLineConstrain('h'),
+				constrain_v = this.guideLineConstrain('v'),
+				lineCoords = [], gap, i;
+
+			//calcualte three divide based on direction
+			if(this._horizontal){
+				
+				gap = (constrain_v.max - constrain_v.min) / numOfRegions;
+
+				//gap < 2em return
+				if( (gap / 100 * this.$el.height()) < 2 * hem){
+					app.notify('Split Error!', 'Current region cannot be divided into this many regions.', 'error', {icon: 'fa fa-reddit-alien'});
+					return;
+				}else{
+					//setup coordinates for the lines
+					for(i = 0; i < (numOfRegions - 1); i ++){
+						lineCoords.push({
+							x1: constrain_h.min,
+							x2: constrain_h.max,
+							y: constrain_v.min + (i + 1) * gap
+						});
+					}
+				}
+				
+			}else{
+
+				gap = (constrain_h.max - constrain_h.min) / numOfRegions;
+				
+				//gap < 2em return
+				if( (gap / 100 * this.$el.height()) < 2 * wem){
+					app.notify('Split Error!', 'Current region cannot be divided into <strong>' + numOfRegions + '</strong> regions.', 'error', {icon: 'fa fa-reddit-alien'});
+					return;
+				}else{
+					//setup coordinates for the lines
+					for(i = 0; i < (numOfRegions - 1); i ++){
+						lineCoords.push({
+							y1: constrain_v.min,
+							y2: constrain_v.max,
+							x: constrain_h.min + (i + 1) * gap
+						});
+					}
+				}
+			}
+
+			//insert lines
+			if(lineCoords.length)
+				_.each(lineCoords, function(coords, index){
+					that.confirmAdd(coords);
+				});
+
+			//coop event, keep as much information as possible
+			this.coop('operate-line-after-generate');
 		},
 		onLineLayoutResetConfirmed: function(){
 			//this.coop('layout-resetted');
@@ -96,7 +245,7 @@
 			//coop event, keep as much information as possible
 			this.coop('operate-line-after-generate');
 		},
-		confirmAdd: function(){
+		confirmAdd: function(coords){
 			var $horizontal = this.$el.find('.horizontal-line'),
 				$vertical = this.$el.find('.vertical-line');
 			//variables for later use
@@ -107,9 +256,9 @@
 
 			if(this._horizontal){//horizontal line
 
-				x1 = trimNumber(parseInt($horizontal.css('left')) / this.$el.width() * 100); //raphael only takes number. therefore parseInt
-				x2 =  trimNumber((parseInt($horizontal.css('left')) + $horizontal.width()) / this.$el.width() * 100);
-				y1 = y2 = trimNumber(parseInt($horizontal.css('top')) / this.$el.height() * 100);
+				x1 = (coords && coords.x1) || trimNumber(parseInt($horizontal.css('left')) / this.$el.width() * 100); //raphael only takes number. therefore parseInt
+				x2 = (coords && coords.x2) ||  trimNumber((parseInt($horizontal.css('left')) + $horizontal.width()) / this.$el.width() * 100);
+				y1 = y2 = (coords && coords.y) || trimNumber(parseInt($horizontal.css('top')) / this.$el.height() * 100);
 				
 				//first check whether there is a point already at those coordinates
 				occupied = checkOccupied({x1: x1, y1: y1, x2: x2, y2: y2}, tolerance);
@@ -154,9 +303,9 @@
 			}
 			else{//vertical line
 
-				x1 = x2 = trimNumber(parseInt($vertical.css('left')) / this.$el.width() * 100);
-				y1 = trimNumber(parseInt($vertical.css('top')) / this.$el.height() * 100);
-				y2 = trimNumber((parseInt($vertical.css('top')) + $vertical.height()) / this.$el.height() * 100);
+				x1 = x2 = (coords && coords.x) || trimNumber(parseInt($vertical.css('left')) / this.$el.width() * 100);
+				y1 = (coords && coords.y1) || trimNumber(parseInt($vertical.css('top')) / this.$el.height() * 100);
+				y2 = (coords && coords.y2) || trimNumber((parseInt($vertical.css('top')) + $vertical.height()) / this.$el.height() * 100);
 
 				//check occupation
 				occupied = checkOccupied({x1: x1, y1: y1, x2: x2, y2: y2}, tolerance);

@@ -147,6 +147,7 @@
 				this.coop('view-menu-close');
 			},
 			'view-add': function(){
+				var that = this;
 				//check html is active or view is active
 				var method = this.$el.find('#view-html-switch').prop('checked') ? 'view' : 'html',//this.$el.find('.tabs .tab.active').attr('tab'),
 					data = this.$el.find('#data-editor').val(),
@@ -194,10 +195,24 @@
 					}
 				}
 				
+				//if method is view, go through view definition for svg and editors
+				if(method === 'view'){
+					//update this.tempEditor
+					this.tempEditor = app.get(content).prototype.editors;
+
+					//update thie.tempSvg
+					//reset this.tempSvg
+					this.tempSvg = {};
+					//insert by looping through svg definitions
+					_.each(app.get(content).prototype.svg, function(fn, name){
+						that.tempSvg[name] = fn.toString();
+					});
+				}
+
 				//coop event to spray view in selected region
 				this.coop('view-menu-add-view', {
 					content: content,
-					data: (data && !error) ? data : undefined,
+					data: (data && !error) ? data : {},
 					method: method,
 					svg: this.tempSvg,
 					editors: this.tempEditor

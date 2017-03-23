@@ -26,6 +26,10 @@ body,
 		width: 100%;
 		background-color: transparent;
 		position: relative;
+		.layout-bar {
+			flex: 0 0 3px;
+			background-color: @border;
+		}
 		.region-cover {
 			position: absolute;
 			background-color: #fff;
@@ -685,6 +689,22 @@ body,
 					top: 0;
 					bottom: 0;
 				}
+				.divide-line-vertical {
+					position: absolute;
+					width: 1px;
+					border-left: 1px dashed @border;
+					top: 0;
+					bottom: 0;
+					left: 0;
+				}
+				.divide-line-horizontal {
+					position: absolute;
+					height: 1px;
+					border-top: 1px dashed @border;
+					left: 0;
+					right: 0;
+					top: 0;
+				}
 			}
 		}
 		//=========== styling for svg layout ===========//
@@ -717,6 +737,11 @@ body,
 }
 
 //------------------------------- overlay styling -------------------------------//
+.overlay {
+	.text-warning {
+		color: @brand-warning !important;
+	}
+}
 .create-overlay {
 	background-color: transparent;
 	z-index: 999;
@@ -725,6 +750,12 @@ body,
 .danger-title {
 	.modal-title {
 		color: @brand-danger;
+	}
+}
+
+.warning-title {
+	.modal-title {
+		color: @brand-warning;
 	}
 }
 

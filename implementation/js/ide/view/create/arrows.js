@@ -77,7 +77,7 @@
 						}
 					})).overlay({
 						effect: false,
-						class: 'layout-reset-confirm-overlay create-overlay danger-title',
+						class: 'layout-reset-confirm-overlay create-overlay warning-title',
 					});
 				}
 				else

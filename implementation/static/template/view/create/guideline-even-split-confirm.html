@@ -1,0 +1,29 @@
+<div class="modal-dialog text-left">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="close" data-dismiss="modal" aria-hidden="true" action="close">×</div>
+            <h4 class="modal-title"><i class="fa fa-bars"></i> Even Split</h4>
+        </div>
+        <div class="modal-body" region="body">
+        	<div class="form form-horizontal">
+                <div editor="number-of-regions"></div>
+                <div class="text-warning warning-message hidden">
+                    <strong>By editing this region, you will lost all the configuration of this region.</strong>
+                    <div class="wrapper clearfix">
+                        <div class="pull-left">Do you want to continue?</div>
+                        <div class="pull-right">
+                            <div class="btn btn-xs btn-primary" action="continue-no">No</div>
+                            <div class="btn btn-xs btn-warning" action="continue-yes">Yes</div>
+                        </div>
+                    </div>
+                </div>
+        	</div>
+        </div>
+        <div class="modal-footer">
+            <div class="button-holder">
+                <div class="btn btn-link" data-dismiss="modal" action="close">Close</div>
+                <div class="btn btn-success" action="split">Apply</div>
+            </div>
+        </div>
+    </div>
+</div>

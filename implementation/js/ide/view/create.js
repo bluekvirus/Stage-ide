@@ -17,6 +17,8 @@
 			this.generated = false;
 			//meta to store currently focusing on which region
 			this.currentRegion = '';
+			//
+			this.preview = false;
 		},
 		onReady: function(){
 			var that = this;
@@ -66,6 +68,9 @@
 				//prevent default events
 				e.preventDefault();
 
+				//set focus to this view
+				$(this).focus();
+
 				var constrain = that.checkConstrain(e), x, y;
 
 				//check constrain
@@ -79,6 +84,19 @@
 					that.clickable = false;
 
 					return;	
+				}else if(e.ctrlKey){
+
+					that.clickable = true;
+					//get x and y
+					x = e.pageX;
+					y = e.pageY;
+
+					//check whether the control key is down
+					app.coop('guideline-even-divide', {
+						x: x,
+						y: y
+					});
+
 				}else if(typeof constrain === 'boolean'){//normal
 					
 					that.clickable = true;
@@ -115,10 +133,15 @@
 				//shift key pressed
 				if(e.which === 16)
 					app.coop('guideline-switch');
+				//control key up
+				else if(e.which === 17)
+					that.getViewIn('guide').$el.find('.divide-line-horizontal, .divide-line-vertical').remove();
 
 			});
 
+			//click events on the creat view
 			this.$el.on('click', function(e){
+
 				var $target = $(e.target);
 				app.debug('clicking target...', $target);
 				//check whether side menu is active, if yes close it
@@ -149,7 +172,7 @@
 				}
 
 				//locked and generated means inserting views
-				if((that.generated && that.locked) || $target.hasClass('region-cover')){
+				if((that.generated && that.locked && !that.preview) || $target.hasClass('region-cover')){
 
 					//exclude view-menu
 					if($target.hasClass('view-menu'))
@@ -212,9 +235,15 @@
 				}
 
 				//only trigger if this.$el is already focused
-				if(that.$el.is(':focus') && that.clickable)
-					//tell guide line view user clicked
-					app.coop('guideline-click');
+				if(that.$el.is(':focus') && that.clickable){
+					//check whether ctrl key is down
+					if(e.ctrlKey){
+						app.coop('guideline-even-divide-click');
+					}else{
+						//tell guide line view user clicked
+						app.coop('guideline-click');
+					}
+				}
 			});
 
 			//set up templates holder height for scroll
@@ -381,7 +410,9 @@
 				})
 				.done(function(data){
 					var _Demo = app.view(/*'_Demo', */{
-						layout: _.extend(data.layout)
+						layout: _.extend(data.layout, {
+							bars: 'layout-bar',
+						})
 					});
 					that.show('generate-view', _Demo);
 					
@@ -570,6 +601,8 @@
 			if(this.locked) return false;
 			//if no mesh return false
 			if(!this.meshed) return false;
+			//preview is not clickable
+			if(this.preview) return false;
 			//stay inside window, use 5px as a buffer
 			if(e.pageX < 5 || e.pageX > this.$el.width() - 5 || e.pageY < 5 || e.pageY > this.$el.height() - 5)
 				return false;
@@ -705,7 +738,8 @@
 			this.$el.find('.locker').addClass('hidden').css(({'z-index': 3}));
 
 			//send notification
-			if(!userReset) app.notify('Layout Resetted.', 'You have changed original layout. The generated view has been resetted.', 'error', {icon: 'fa fa-reddit-alien'});
+			if(!userReset) 
+				app.notify('Layout Resetted.', 'You have changed original layout. The generated view has been resetted.', 'error', {icon: 'fa fa-reddit-alien'});
 		},
 		flashCurrent: function(){
 			this.$el.find('.side-menu-list .current-name-holder').addClass('flash');
@@ -789,7 +823,7 @@
 			//translate each editor configuration from string to object
 			if(obj.editors)
 				_.each(obj.editors, function(str, name){
-					obj.editors[name] = JSON.parse(str);
+					obj.editors[name] = (_.isString(str)) ? JSON.parse(str) : str;
 				});
 
 			//translate each svg configuration from string to function
@@ -924,6 +958,9 @@
 		},
 		onOverlayGenerate: function(){
 			this.generateLayout(false, true);
+		},
+		onLayoutPreviewToggle: function(preview){
+			this.preview = preview;
 		},
 	});
 

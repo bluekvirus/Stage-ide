@@ -61,6 +61,7 @@
 		},
 		actions: {
 			lock: function($self){
+				this.previewLayout(this.$el.find('.preivew-button'), true);
 				this.lockLayout();
 			},
 			'mesh': function($self){
@@ -125,6 +126,41 @@
 					class: 'export-overlay create-overlay',
 				});	
 			},
+			preview: function($self){
+				this.previewLayout($self);
+			},
+		},
+		previewLayout: function($previewBtn, reset){
+			var svgClasses = ['end-point'/*outer circle*/, 'end-point-inner'/*inner circle*/, 'layout-line'/*lines*/];
+
+			if(!reset){
+				$previewBtn.toggleClass('active');
+				$previewBtn.find('.operations-subitem').toggleClass('hidden');
+			}else{//reset
+				$previewBtn.removeClass('active');
+				$previewBtn.find('.operations-subitem.hide-point').removeClass('hidden');
+				$previewBtn.find('.operations-subitem.show-point').addClass('hidden');
+			}
+				
+			//if has class active, hide all the svg lines and borders
+			if($previewBtn.hasClass('active')){
+				this.parentCt.$el.find('.layout-bar, .region-cover').addClass('hidden');
+				this.parentCt.getViewIn('generate-view').$el.find('.region').removeClass('active');
+			}else{
+				this.parentCt.$el.find('.layout-bar').removeClass('hidden');
+			}
+
+			_.each(svgClasses, function(cl){
+				_.each($('.' + cl), function(el){
+					var $el = $(el);
+					//
+					var classes = $el.attr('class');
+					$el.attr('class', (($previewBtn.hasClass('active')) ? (classes + ' hidden') : (classes.replace('hidden', ''))));
+				});	
+			});
+
+			//coop to parent view
+			this.coop('layout-preview-toggle', $previewBtn.hasClass('active'));
 		},
 		lockLayout: function(){
 			var $lockButton = this.$el.find('.operations-item .lock-button'),
